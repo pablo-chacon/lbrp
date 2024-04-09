@@ -15,7 +15,7 @@ import pandas as pd
 class SL:
 
     def __init__(self):
-        self.zipped_data = zipfile.ZipFile('/home/pablo/dev23/data_sets/sl.zip')
+        self.zipped_data = zipfile.ZipFile('/data_sets/sl.zip')
 
 
     def get_file(self, filename):
