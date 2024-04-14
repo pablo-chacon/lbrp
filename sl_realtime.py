@@ -1,7 +1,7 @@
 from google.transit import gtfs_realtime_pb2
 import requests
 
-key = "b366e4ab8bc44017b4c65229323fa7b0"
+key = "your-api-key"
 feed = gtfs_realtime_pb2.FeedMessage()
 response = requests.get("https://opendata.samtrafiken.se/gtfs-rt-sweden/{operator}/VehiclePositionsSweden.pb?key={key}")
 feed.ParseFromString(response.content)
