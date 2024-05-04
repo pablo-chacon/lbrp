@@ -3,13 +3,14 @@ import gpxpy.gpx
 import random
 from datetime import datetime, timedelta
 
-# Parameters
+
+# Params
 num_users = 10
 start_lat, start_lon = 59.3293, 18.0686  # Stockholm coordinates
 radius = 0.05  # Radius random offset from center
-#elevation = random.randint(-10, 100)  # Random elevation
+# elevation = random.randint(-10, 100)  # Random elevation
 workday_locations = ["Workplace", "Park", "Cafe", "Gym"]  # Possible locations for workdays
-weekend_locations = ["Sture P", "Parents", "IKEA", "Countryside"]  # Possible locations for weekends
+weekend_locations = ["Sture P", "Parents", "IKEA", "Countryside", "Gym"]  # Possible locations for weekends
 
 
 def gen_rand_location(center_lat, center_lon, radius):
@@ -85,9 +86,10 @@ for i in range(num_users):
     user_gpx = generate_user_profile(start_time, end_time)
     user_profiles.append(user_gpx)
 
-# Write GPX files for each user profile
+
+# Write GPX user files
 for i, user_gpx in enumerate(user_profiles):
-    with open(f"user_{i + 1}_profile.gpx", "w") as gpx_file:
+    with open(f"user_profiles/user_{i + 1}_profile.gpx", "w") as gpx_file:
         gpx_file.write(user_gpx.to_xml())
 
 print("User profiles generated successfully.")

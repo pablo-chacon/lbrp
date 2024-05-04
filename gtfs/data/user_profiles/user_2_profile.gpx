@@ -2,11 +2,11 @@
 <gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="gpx.py -- https://github.com/tkrajina/gpxpy">
   <trk>
     <trkseg>
-      <trkpt lat="59.3539766366738" lon="18.06199714719231">
+      <trkpt lat="59.322697147192315" lon="18.02844431263832">
         <ele>0</ele>
         <time>2024-03-01T08:00:00</time>
       </trkpt>
-      <trkpt lat="59.32366785516617" lon="18.088000116279325">
+      <trkpt lat="59.29593647867293" lon="18.048546608024406">
         <ele>0</ele>
         <time>2024-03-01T14:00:00</time>
       </trkpt>

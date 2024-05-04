@@ -2,7 +2,7 @@
 <gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="gpx.py -- https://github.com/tkrajina/gpxpy">
   <trk>
     <trkseg>
-      <trkpt lat="59.31793488249798" lon="18.063635438064043">
+      <trkpt lat="59.32972555291232" lon="18.095040411470723">
         <ele>0</ele>
         <time>2024-03-01T08:00:00</time>
       </trkpt>
