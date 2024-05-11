@@ -1,5 +1,7 @@
 import requests
 import time
+import gtfs_kit as gk
+import pandas as pd
 
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
@@ -32,14 +34,25 @@ def get_nearby_stops(lat, lon):
     return nearby_stops_data
 
 
+# Sample JSON response for timetables
+timetables_json = {
+    'from': '2007-08-24T00:00:00'
+    # Add more fields as needed
+}
 
-user_lat = 59.3284
-user_lon = 18.0675
+# Sample JSON response for deviations
+deviations_json = {
+    'id': 694,
+    'gid': 9011001069400000,
+    'name': '',
+    # Add more fields as needed
+}
 
-while True:
-
+if __name__ == "__main__":
+    user_lat = 59.3284
+    user_lon = 18.0675
     timetable_data = get_timetable()  # Request timetable
-    print(timetable_data)
+    pd.to_pickle(timetable_data, 'data/timetable_data.pkl')  # Save timetable data to file
     get_nearby_stops(user_lat, user_lon)  # Nearby stops
 
     deviations_data = get_deviations()  # Get deviasions
@@ -47,8 +60,6 @@ while True:
     # Implement dynamic routing decision
     # Based on user profile data, real-time location, timetable, and deviation information, adjust routing recommendations
 
-
     # Verify deviation information and present routing recommendations to the user
 
-
-    time.sleep(30)  # Sleep 30 to simulate real-time data
+    # time.sleep(30)  # Sleep 30 to simulate real-time data
