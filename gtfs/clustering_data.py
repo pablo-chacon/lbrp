@@ -7,6 +7,11 @@ import math
 from shapely.geometry import Point, LineString
 
 
+# __Author__: pablo-chacon
+# __Version__: 1.0.0
+# __Date__: 2024-05-11
+
+
 def extract_point_data(point):
     return {
         'Latitude': point.latitude,

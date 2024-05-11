@@ -7,6 +7,12 @@ from folium.plugins import FastMarkerCluster
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString
 
+
+# __Author__: pablo-chacon
+# __Version__: 1.0.0
+# __Date__: 2024-05-11
+
+
 # Parse GPX file, extract waypoint data
 def parse_gpx(file_path):
     with open(file_path, 'r') as file:
@@ -17,6 +23,7 @@ def parse_gpx(file_path):
                 for point in segment.points:
                     points_data.append({'Latitude': point.latitude, 'Longitude': point.longitude})
         return pd.DataFrame(points_data)
+
 
 # Plot waypoints, trajectories, routes
 def plot_data(gdf):
@@ -68,6 +75,7 @@ def map_data(gdf):
 
     return mymap
 
+
 # GPX files
 gpx_folder = 'user_profiles'
 
@@ -90,5 +98,3 @@ plot_data(gdf)
 map_data(gdf)
 # Map specific user data
 plot_data(gdf.loc[1])
-
-

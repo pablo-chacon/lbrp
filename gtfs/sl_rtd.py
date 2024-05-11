@@ -3,6 +3,12 @@ import time
 import gtfs_kit as gk
 import pandas as pd
 
+
+# __Author__: pablo-chacon
+# __Version__: 1.0.0
+# __Date__: 2024-05-11
+
+
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
 nearby_stops_url = "https://transport.integration.sl.se/v1/sites?"
