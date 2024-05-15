@@ -1,13 +1,16 @@
 import requests
-import time
-import gtfs_kit as gk
 import pandas as pd
-
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.0
 # __Date__: 2024-05-11
 
+
+"""
+SL Real-Time Data API interaction.
+Retrieve timetable, deviations, and nearby stops data.
+Build response to dataframe and pickle dataframes.
+"""
 
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
@@ -24,10 +27,22 @@ def get_timetable():
     return response.json()
 
 
+def timetable_to_df(timetable):
+    df = pd.json_normalize(timetable)
+    df.to_pickle('timetable.pkl')
+    return df
+
+
 def get_deviations():
     response = requests.get(deviations_url)
     data = response.json()
     return data
+
+
+def deviations_to_df(deviations):
+    df = pd.json_normalize(deviations)
+    df.to_pickle('deviations.pkl')
+    return df
 
 
 def get_nearby_stops(lat, lon):
@@ -40,32 +55,16 @@ def get_nearby_stops(lat, lon):
     return nearby_stops_data
 
 
-# Sample JSON response for timetables
-timetables_json = {
-    'from': '2007-08-24T00:00:00'
-    # Add more fields as needed
-}
+def nearby_stops_to_df(nearby_stops_data):
+    df = pd.json_normalize(nearby_stops_data)
+    df.to_pickle('nearby_stops.pkl')
+    return df
 
-# Sample JSON response for deviations
-deviations_json = {
-    'id': 694,
-    'gid': 9011001069400000,
-    'name': '',
-    # Add more fields as needed
-}
 
-if __name__ == "__main__":
-    user_lat = 59.3284
-    user_lon = 18.0675
-    timetable_data = get_timetable()  # Request timetable
-    pd.to_pickle(timetable_data, 'data/timetable_data.pkl')  # Save timetable data to file
-    get_nearby_stops(user_lat, user_lon)  # Nearby stops
+if __name__ == '__main__':
+    timetable = get_timetable()  # Get timetable data
+    timetable_df = timetable_to_df(timetable)  # Timetable to DataFrame.
+    deviations = get_deviations()  # Get deviations data
+    deviations_df = deviations_to_df(deviations)  # Deviations to DataFrame.
+    nearby_stops = get_nearby_stops(59.3293, 18.0686)  # Get nearby stops data.
 
-    deviations_data = get_deviations()  # Get deviasions
-
-    # Implement dynamic routing decision
-    # Based on user profile data, real-time location, timetable, and deviation information, adjust routing recommendations
-
-    # Verify deviation information and present routing recommendations to the user
-
-    # time.sleep(30)  # Sleep 30 to simulate real-time data

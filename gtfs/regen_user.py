@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 num_users = 10
 start_lat, start_lon = 59.3293, 18.0686  # Stockholm coordinates
 radius = 0.05  # Random offset.
-workday_locations = ["Workplace", "Park", "Cafe", "Gym"]  # Possible locations for workdays
-weekend_locations = ["Sture P", "Parents", "IKEA", "Countryside", "Gym"]  # Possible locations for weekends
+workday_locations = ["Workplace", "Park", "Cafe", "Gym"]  # Possible workday locations
+weekend_locations = ["Sture P", "Parents", "IKEA", "Countryside", "Gym"]  # Possible weekend locations
 
 
 def gen_rand_location(center_lat, center_lon, radius):
