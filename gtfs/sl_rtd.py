@@ -13,8 +13,8 @@ import pandas as pd
 # SL Real-Time Data URLs
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
-nearby_stops_url = "https://transport.integration.sl.se/v1/sites"
-
+nearby_stops_url = "https://journeyplanner.integration.sl.se/v1/nearbystopsv2.json?"
+API_KEY = "YOUR_API_KEY"
 
 # Make GET requests
 def make_request(url):
@@ -28,7 +28,7 @@ def make_request(url):
         return response.json()
     else:
         print(f"Failed to fetch data from {url}")
-        return None
+        return response.json()
 
 
 def current_timetable(timetable_df, deviations_df):
@@ -89,8 +89,8 @@ if __name__ == '__main__':
     merged_timetable = current_timetable(timetable_df, deviations_df)
     print(merged_timetable.head())
     # Get nearby stops data
-    lat, lon = 59.3293, 18.0686  # Stockholm
-    nearby_stops_data = make_request(f"{nearby_stops_url}&latitude={lat}&longitude={lon}")
+    lat, lon = 59.314722, 18.071944  # Stockholm
+    nearby_stops_data = make_request(f"{nearby_stops_url}&originCoordLong={lon}&originCoordLat={lat}&key={API_KEY}")
     if nearby_stops_data:
         nearby_stops_df = pd.json_normalize(nearby_stops_data)
         nearby_stops_df.to_pickle('nearby_stops.pkl')
