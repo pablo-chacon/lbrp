@@ -14,6 +14,7 @@ timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
 nearby_stops_url = "https://journeyplanner.integration.sl.se/v1/nearbystopsv2.json?"
 
+
 # Make GET requests
 def make_request(url):
     payload = {}
@@ -28,6 +29,7 @@ def make_request(url):
         print(f"Failed to fetch data from {url}")
         return response.json()
 
+
 def current_timetable(timetable_df, deviations_df):
     # Explode deviations_df separate rows lines.
     deviations_exploded = deviations_df.explode('scope.lines')
@@ -39,8 +41,9 @@ def current_timetable(timetable_df, deviations_df):
 
     return merged_data
 
+
 # Process timetable data.
-def process__data(data):
+def process_data(data):
     # List extracted data.
     extracted_info = []
     # Iterate transport mode.
@@ -67,11 +70,12 @@ def process__data(data):
     df = pd.DataFrame(extracted_info)
     return df
 
+
 if __name__ == '__main__':
     # Get timetable.
     timetable_data = make_request(timetable_url)
     if timetable_data:
-        timetable_df = process__data(timetable_data)
+        timetable_df = process_data(timetable_data)
         timetable_df.to_pickle('timetable.pkl')
         print(timetable_df.head())
 
