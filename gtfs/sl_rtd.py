@@ -1,20 +1,18 @@
 import requests
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
-# __author__ = "pablo-chacon"
-# __version__ = "1.0.0"
-# __date__ = "2024-05-17"
+# Load environment variables from .env file
+load_dotenv()
 
-"""Script to fetch and process real-time data from SL API.
- Fetches real-time data for public transport lines, deviations, and nearby stops.
- Processes response data, extract relevant data and merge into DataFrame.
- Save processed data as Pickle files."""
+# Get the API key from the environment variable
+API_KEY = os.getenv('SL_API_KEY')
 
 # SL Real-Time Data URLs
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
 nearby_stops_url = "https://journeyplanner.integration.sl.se/v1/nearbystopsv2.json?"
-API_KEY = "YOUR_API_KEY"
 
 # Make GET requests
 def make_request(url):
@@ -30,7 +28,6 @@ def make_request(url):
         print(f"Failed to fetch data from {url}")
         return response.json()
 
-
 def current_timetable(timetable_df, deviations_df):
     # Explode deviations_df separate rows lines.
     deviations_exploded = deviations_df.explode('scope.lines')
@@ -42,9 +39,8 @@ def current_timetable(timetable_df, deviations_df):
 
     return merged_data
 
-
 # Process timetable data.
-def process_real_time_data(data):
+def process__data(data):
     # List extracted data.
     extracted_info = []
     # Iterate transport mode.
@@ -71,12 +67,11 @@ def process_real_time_data(data):
     df = pd.DataFrame(extracted_info)
     return df
 
-
 if __name__ == '__main__':
     # Get timetable.
     timetable_data = make_request(timetable_url)
     if timetable_data:
-        timetable_df = process_real_time_data(timetable_data)
+        timetable_df = process__data(timetable_data)
         timetable_df.to_pickle('timetable.pkl')
         print(timetable_df.head())
 
@@ -88,8 +83,9 @@ if __name__ == '__main__':
 
     merged_timetable = current_timetable(timetable_df, deviations_df)
     print(merged_timetable.head())
+
     # Get nearby stops data
-    lat, lon = 59.314722, 18.071944  # Stockholm
+    lat, lon = 59.314722, 18.071944  # Medborgarplatsen coordinates.
     nearby_stops_data = make_request(f"{nearby_stops_url}&originCoordLong={lon}&originCoordLat={lat}&key={API_KEY}")
     if nearby_stops_data:
         nearby_stops_df = pd.json_normalize(nearby_stops_data)
