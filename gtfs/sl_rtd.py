@@ -3,13 +3,13 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
+# Load .env vars.
 load_dotenv()
 
-# Get the API key from the environment variable
+# Retrieve API Key.
 API_KEY = os.getenv('SL_API_KEY')
 
-# SL Real-Time Data URLs
+# Real-Time Data URLs
 timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
 nearby_stops_url = "https://journeyplanner.integration.sl.se/v1/nearbystopsv2.json?"
