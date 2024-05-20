@@ -3,7 +3,7 @@ import pandas as pd
 
 # __author__ = "pablo-chacon"
 # __version__ = "1.0.0"
-# __date__ = "2024-05-11"
+# __date__ = "2024-05-17"
 
 """Script to fetch and process real-time data from SL API.
  Fetches real-time data for public transport lines, deviations, and nearby stops.
