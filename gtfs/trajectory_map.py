@@ -9,6 +9,7 @@ from shapely.geometry import Point, LineString
 from math import radians
 import sl_rtd as sl
 
+
 # Function to parse GPX file and extract waypoint data
 def parse_gpx(file_path):
     with open(file_path, 'r') as file:
