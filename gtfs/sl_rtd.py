@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import json
 
 # Load .env vars.
 load_dotenv()
@@ -28,18 +29,6 @@ def make_request(url):
     else:
         print(f"Failed to fetch data from {url}")
         return response.json()
-
-
-def current_timetable(timetable_df, deviations_df):
-    # Explode deviations_df separate rows lines.
-    deviations_exploded = deviations_df.explode('scope.lines')
-    deviations_exploded = deviations_exploded.reset_index(drop=True)
-    deviations_exploded['line_id'] = deviations_exploded['scope.lines'].apply(lambda x: x['id'])
-
-    # Merge dataframes.
-    merged_data = pd.merge(timetable_df, deviations_exploded, on='line_id', suffixes=('_timetable', '_deviation'))
-
-    return merged_data
 
 
 # Process timetable data.
@@ -71,7 +60,28 @@ def process_data(data):
     return df
 
 
-if __name__ == '__main__':
+def current_timetable(timetable_df, deviations_df):
+    # Explode deviations_df separate rows lines.
+    deviations_exploded = deviations_df.explode('scope.lines')
+    deviations_exploded = deviations_exploded.reset_index(drop=True)
+    deviations_exploded['line_id'] = deviations_exploded['scope.lines'].apply(lambda x: x['id'])
+
+    # Merge dataframes.
+    merged_data = pd.merge(timetable_df, deviations_exploded, on='line_id', suffixes=('_timetable', '_deviation'))
+
+    return merged_data
+
+
+def extract_stop_locations(nearby_stops_data):
+    nearby_stops_info = []
+    for item in nearby_stops_data['stopLocationOrCoordLocation']:
+        stop_location = item['StopLocation']
+        nearby_stops_info.append(stop_location)
+    nearby_stops_df = pd.DataFrame(nearby_stops_info)
+    return nearby_stops_df
+
+
+def main():
     # Get timetable.
     timetable_data = make_request(timetable_url)
     if timetable_data:
@@ -89,9 +99,45 @@ if __name__ == '__main__':
     print(merged_timetable.head())
 
     # Get nearby stops data
-    lat, lon = 59.314722, 18.071944  # Medborgarplatsen coordinates.
-    nearby_stops_data = make_request(f"{nearby_stops_url}&originCoordLong={lon}&originCoordLat={lat}&key={API_KEY}")
-    if nearby_stops_data:
-        nearby_stops_df = pd.json_normalize(nearby_stops_data)
-        nearby_stops_df.to_pickle('nearby_stops.pkl')
-        print(nearby_stops_df.head())
+    nearby_stops_data = {
+        'stopLocationOrCoordLocation': [
+            {'StopLocation': {
+                'id': 'A=1@O=Medborgarplatsen@X=18072867@Y=59315196@u=74@U=74@L=400110130@',
+                'extId': '400110130',
+                'hasMainMast': True,
+                'mainMastId': 'A=1@O=Medborgarplatsen (Stockholm)@X=18073433@Y=59314288@U=74@L=300109191@',
+                'mainMastExtId': '300109191',
+                'name': 'Medborgarplatsen',
+                'lon': 18.072867,
+                'lat': 59.315196,
+                'weight': 1277,
+                'dist': 74,
+                'products': 8}},
+            {'StopLocation': {
+                'id': 'A=1@O=Björns trädgård@X=18072867@Y=59315214@u=76@U=74@L=400110410@',
+                'extId': '400110410',
+                'hasMainMast': True,
+                'mainMastId': 'A=1@O=Björns trädgård (Stockholm)@X=18072912@Y=59315187@U=74@L=300101315@',
+                'mainMastExtId': '300101315',
+                'name': 'Björns trädgård',
+                'lon': 18.072867, 'lat': 59.315214,
+                'weight': 13109,
+                'dist': 76,
+                'products': 10}},
+            # Add more stop locations as needed
+        ],
+        'serverVersion': '1.4',
+        'dialectVersion': '1.23',
+        'requestId': 'ce8fe1f8a84c75cf0c487b6356f751bb'
+    }
+
+    nearby_stops_df = extract_stop_locations(nearby_stops_data)
+    # Extract rows where dist is less than 80
+    relevant_data = nearby_stops_df[nearby_stops_df['dist'] < 80]
+    print(relevant_data.values)
+    nearby_stops_df.to_pickle('nearby_stops.pkl')
+    print(nearby_stops_df.head())
+
+
+if __name__ == '__main__':
+    main()

@@ -32,10 +32,6 @@ def parse_gpx(file_path):
 
 # Calculate distance between two points
 def haversine_distance(lat1, lon1, lat2, lon2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
     # Convert decimal degrees to radians
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
 
@@ -81,7 +77,6 @@ plt.show()
 total_distance = 0
 for i in range(len(gdf) - 1):
     lat1, lon1 = gdf.iloc[i].Latitude, gdf.iloc[i].Longitude
-    print(lat1, lon1)
     lat2, lon2 = gdf.iloc[i + 1].Latitude, gdf.iloc[i + 1].Longitude
     cords = [lat1, lon1, lat2, lon2]
     total_distance += haversine_distance(*cords)
@@ -110,6 +105,7 @@ plt.title('Trajectory')
 
 # Plot point-to-point movement for each user
 fig, ax = plt.subplots(figsize=(10, 10))
+valid_data_found = False
 
 # Group data by user and iterate over each group
 for user_id, group_data in gdf.groupby(level=0):
@@ -118,12 +114,18 @@ for user_id, group_data in gdf.groupby(level=0):
     # Plot the LineString
     ax.plot(line.xy[0], line.xy[1], label=f'User {user_id}')
 
+if not valid_data_found:
+    print("No valid movement data found for plotting.")
+
 # Set labels and title
 ax.set_xlabel('Longitude')
-
 ax.set_ylabel('Latitude')
 ax.set_title('Point-to-Point Movement for Each User')
-ax.legend()
+
+# Add legend if valid data is found
+if valid_data_found:
+    ax.legend()
 
 # Show plot
 plt.show()
+

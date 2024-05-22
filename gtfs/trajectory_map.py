@@ -78,11 +78,4 @@ plt.ylabel('Latitude')
 plt.title('Trajectory')
 plt.show()
 
-# Read GTFS data and match with user movement
-timetable = pd.read_pickle('timetable.pkl')
-print(timetable.head())
-
-# TODO: Add GTFS data retrieval and matching logic
-
-# Visualize on map
-# TODO: Add map visualization logic
+print(gdf.head())
