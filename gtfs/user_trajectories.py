@@ -66,5 +66,7 @@ def load_and_process_user_trajectories():
 
 if __name__ == "__main__":
     gdf, destinations = load_and_process_user_trajectories()
+    gdf.to_pickle('gdf.pkl')
+    destinations.to_pickle('dest.pkl')
     print(gdf.head())
     print(destinations.head())

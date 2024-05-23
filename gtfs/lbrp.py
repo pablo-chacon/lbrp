@@ -1,66 +1,88 @@
+import pandas as pd
+import geopandas as gpd
 import user_trajectories as ut
 import sl_rtd as sl
-import pandas as pd
+import matplotlib.pyplot as plt
 
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.0
-# __Date__: 2024-05-22
+# __Date__: 2024-05-23
 
-"""Implements matching user trajectories to nearby stops and find possible routes."""
+def load_and_process_gpx_files():
+    gdf, destinations = ut.load_and_process_user_trajectories()
+    return gdf, destinations
 
 
-def match_trajectories_to_stops(user_gdf, nearby_stops_df, merged_timetable_df):
-    matches = []
+def create_optimized_timetable(user_gdf, destinations, timetable_df, deviations_df, nearby_stops_df):
+    # Merge timetable with deviations
+    merged_timetable_df = sl.current_timetable(timetable_df, deviations_df)
 
-    print("Merged Timetable Columns:", merged_timetable_df.columns)
+    # Create an optimized timetable based on user trajectories and deviations
+    optimized_timetable = []
 
-    for idx, user_point in user_gdf.iterrows():
-        closest_stop = nearby_stops_df.loc[
-            (nearby_stops_df['lat'] - user_point['Latitude']).abs().idxmin()]
-        stop_id = closest_stop['extId']
-        matched_routes = []
+    for _, user_row in user_gdf.iterrows():
+        user_point = user_row.geometry
+        user_time = user_row.Time
 
-        # Handle the nested structure in 'scope.lines'
-        for _, row in merged_timetable_df.iterrows():
-            if isinstance(row['scope.lines'], list):
-                line_ids = [line['id'] for line in row['scope.lines'] if 'id' in line]
-                if stop_id in line_ids:
-                    matched_routes.append(row)
+        nearby_stops = nearby_stops_df.copy()
+        nearby_stops['distance'] = nearby_stops.apply(
+            lambda row: user_point.distance(gpd.points_from_xy([row['lon']], [row['lat']])[0]), axis=1)
+        nearby_stops = nearby_stops[nearby_stops['distance'] < 0.001]  # Filter stops within 1 km
 
-        matched_routes_df = pd.DataFrame(matched_routes)
+        if not nearby_stops.empty:
+            for _, stop_row in nearby_stops.iterrows():
+                stop_id = stop_row.id
 
-        for _, route in matched_routes_df.iterrows():
-            match = {
-                'user_point_index': idx,
-                'user_latitude': user_point['Latitude'],
-                'user_longitude': user_point['Longitude'],
-                'stop_id': stop_id,
-                'route': route['line_name']
-            }
-            matches.append(match)
+                relevant_timetable = merged_timetable_df[
+                    (merged_timetable_df['stop_area_id'] == stop_id) &
+                    (merged_timetable_df['valid_from'] <= user_time) &
+                    ((merged_timetable_df['valid_to'].isna()) | (merged_timetable_df['valid_to'] >= user_time))
+                    ]
 
-    matches_df = pd.DataFrame(matches)
-    return matches_df
+                if not relevant_timetable.empty:
+                    optimized_timetable.append(relevant_timetable.iloc[0].to_dict())
+
+    optimized_timetable_df = pd.DataFrame(optimized_timetable).drop_duplicates()
+    return optimized_timetable_df
 
 
 def main():
-    # Load and process user trajectories
-    user_gdf, destinations = ut.load_and_process_user_trajectories()
+    # Load user trajectory data
+    user_gdf, destinations = load_and_process_gpx_files()
+    print("User Trajectories DataFrame:")
     print(user_gdf.head())
+    print("\nDestinations DataFrame:")
+    print(destinations.head())
 
-    # Save and load data from sl_rtd
+    # Load timetable, deviations, and nearby stops data
     timetable_df, deviations_df, nearby_stops_df = sl.save_all_data()
+    print("\nTimetable DataFrame:")
     print(timetable_df.head())
+    print("\nDeviations DataFrame:")
     print(deviations_df.head())
+    print("\nNearby Stops DataFrame:")
     print(nearby_stops_df.head())
 
-    # Match user trajectories to stops and find possible routes
-    merged_timetable_df = sl.current_timetable(timetable_df, deviations_df)
-    print("Merged Timetable DataFrame:", merged_timetable_df.head())
-    matches_df = match_trajectories_to_stops(user_gdf, nearby_stops_df, merged_timetable_df)
-    print(matches_df.head())
+    # Generate optimized timetable
+    optimized_timetable_df = create_optimized_timetable(user_gdf, destinations, timetable_df, deviations_df,
+                                                        nearby_stops_df)
+    print("\nOptimized Timetable DataFrame:")
+    print(optimized_timetable_df.head())
+
+    # Save the optimized timetable to a file
+    optimized_timetable_df.to_pickle('optimized_timetable.pkl')
+
+    # Visualize the user trajectories
+    fig, ax = plt.subplots(figsize=(10, 6))
+    user_gdf.plot(ax=ax, color='blue', marker='o', markersize=5, label='Trajectory')
+    destinations.plot(ax=ax, color='red', marker='x', markersize=5, label='Destinations')
+    plt.legend()
+    plt.title("User Trajectories and Destinations")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

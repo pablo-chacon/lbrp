@@ -4,15 +4,13 @@ from dotenv import load_dotenv
 import os
 import json
 
-
 # __Author__: pablo-chacon
 # __Version__: 1.0.0
 # __Date__: 2024-05-11
 
 """Fetch Real-Time Data from SL API. 
     Endpoints: Timetable, Deviations, Nearby Stops.
-    Save data to local files.
-"""
+    Save data to local files."""
 
 # Load .env vars.
 load_dotenv()
@@ -42,7 +40,7 @@ def make_request(url, params=None):
 
 # Process timetable data.
 def process_data(data):
-    # List for extracted data.
+    # Store extracted data.
     extracted_info = []
     # Iterate transport mode.
     for transport_mode, lines in data.items():
@@ -72,8 +70,52 @@ def process_data(data):
     return df
 
 
+# Process deviations data.
+def process_deviations(data):
+    if data is None:
+        return pd.DataFrame()
+
+    # Extract relevant data.
+    extracted_info = []
+    for deviation in data:
+        base_info = {
+            "version": deviation.get("version"),
+            "created": deviation.get("created"),
+            "deviation_case_id": deviation.get("deviation_case_id"),
+            "message_variants": deviation.get("message_variants"),
+            "publish_from": deviation.get("publish", {}).get("from"),
+            "publish_upto": deviation.get("publish", {}).get("upto"),
+            "priority_importance_level": deviation.get("priority", {}).get("importance_level"),
+            "priority_influence_level": deviation.get("priority", {}).get("influence_level"),
+            "priority_urgency_level": deviation.get("priority", {}).get("urgency_level")
+        }
+
+        # Process nested lines and stops
+        for line in deviation.get("scope", {}).get("lines", []):
+            line_info = {
+                "line_id": line.get("id"),
+                "line_transport_authority": line.get("transport_authority"),
+                "line_designation": line.get("designation")
+            }
+            combined_info = {**base_info, **line_info}
+            extracted_info.append(combined_info)
+
+        for stop in deviation.get("scope", {}).get("stop_areas", []):
+            stop_info = {
+                "stop_area_id": stop.get("id"),
+                "stop_transport_authority": stop.get("transport_authority"),
+                "stop_name": stop.get("name")
+            }
+            combined_info = {**base_info, **stop_info}
+            extracted_info.append(combined_info)
+
+    # Create DataFrame.
+    df = pd.DataFrame(extracted_info)
+    return df
+
+
 def current_timetable(timetable_df, deviations_df):
-    # Explode deviations_df separate rows lines.
+    # Explode deviations_df separate lines rows.
     deviations_exploded = deviations_df.explode('scope.lines')
     deviations_exploded = deviations_exploded.reset_index(drop=True)
     deviations_exploded['line_id'] = deviations_exploded['scope.lines'].apply(lambda x: x['id'])
@@ -106,7 +148,7 @@ def save_timetable():
 def save_deviations():
     deviations_data = make_request(deviations_url)
     if deviations_data:
-        deviations_df = pd.json_normalize(deviations_data)
+        deviations_df = process_deviations(deviations_data)
         deviations_df.to_pickle('deviations.pkl')
         print(deviations_df.head())
         return deviations_df
