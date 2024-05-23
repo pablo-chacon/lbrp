@@ -1,19 +1,13 @@
 import math
 import os
-from math import radians
-import geopandas as gpd
 import gpxpy
 import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
 from scipy.constants import R
-
-
-# __Author__: pablo-chacon
-# __Version__: 1.0.0
-# __Date__: 2024-05-22
-
-
-"""Implements functions to process user trajectories and identify destinations.
-    Reads GPX files, calculates distances, and identifies destinations based on stay duration."""
+from shapely.geometry import Point, LineString
+from math import radians
+import sl_rtd as sl
 
 
 def parse_gpx(file_path):
@@ -36,6 +30,10 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
+    # Filter outliers (e.g., remove points with unrealistic speeds)
+    df['geometry'] = df.apply(lambda row: Point(row['Longitude'], row['Latitude']), axis=1)
+    df['prev_point'] = df['geometry'].shift()
+    df['distance'] = df.apply(lambda row: row['geometry'].distance(row['prev_point']) if row['prev_point'] else 0, axis=1)
 
 def identify_destinations(gdf, min_stay_duration=1):
     gdf['TimeDelta'] = gdf['Time'].diff().dt.total_seconds() / 3600
@@ -64,9 +62,15 @@ def load_and_process_user_trajectories():
     return gdf, identify_destinations(gdf)
 
 
+# Function to aggregate geodata by time intervals
+def aggregate_by_time(df, time_interval='hourly'):
+    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+    if time_interval == 'hourly':
+        df['TimeGroup'] = df['Timestamp'].dt.floor('h')
+    elif time_interval == 'daily':
+        df['TimeGroup'] = df['Timestamp'].dt.date
+
 if __name__ == "__main__":
     gdf, destinations = load_and_process_user_trajectories()
-    gdf.to_pickle('gdf.pkl')
-    destinations.to_pickle('dest.pkl')
     print(gdf.head())
     print(destinations.head())
