@@ -12,22 +12,31 @@ from datetime import datetime, timedelta
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
+# __Author__: pablo-chacon
+# __Version__: 1.0.2
+# __Date__: 2024-05-23
+
 # Load .env vars
 load_dotenv()
+
 
 # Load sites data
 def load_sites_data():
     return sl.load_sites_data()
+
 
 # Find the three closest sites within 1 km
 def find_nearby_sites(lat, lon, sites_data, radius=1000, n=3):
     user_location = (lat, lon)
     sites_data = sites_data.dropna(subset=['lat', 'lon'])  # Ensure no NaNs in coordinates
     logging.info(f"User location: {user_location}")
-    sites_data['distance'] = sites_data.apply(lambda row: geodesic(user_location, (row['lat'], row['lon'])).meters, axis=1)
+    sites_data['distance'] = sites_data.apply(lambda row: geodesic(user_location, (row['lat'], row['lon'])).meters,
+                                              axis=1)
     nearby_sites = sites_data[sites_data['distance'] <= radius]
     closest_sites = nearby_sites.nsmallest(n, 'distance')
     return closest_sites
+
 
 # Fetch real-time departure information
 def fetch_departures(site_id, time_window=60, transport_mode='BUS'):
@@ -39,6 +48,7 @@ def fetch_departures(site_id, time_window=60, transport_mode='BUS'):
     except Exception as e:
         logging.error(f"Error fetching departures for site ID {site_id}: {e}")
     return []
+
 
 # Estimate travel time for walking, biking, or driving
 def estimate_travel_time(distance, transport_mode):
@@ -54,6 +64,7 @@ def estimate_travel_time(distance, transport_mode):
     travel_time_minutes = travel_time_hours * 60
     return timedelta(minutes=travel_time_minutes)
 
+
 # Optimize route
 def optimize_route(gdf, sites_data, destination_coords, step=15):
     route = []
@@ -63,7 +74,8 @@ def optimize_route(gdf, sites_data, destination_coords, step=15):
             logging.warning(f"Skipping waypoint with NaN coordinates at index {i}")
             continue
         closest_sites = find_nearby_sites(waypoint['Latitude'], waypoint['Longitude'], sites_data)
-        logging.info(f"Closest sites for waypoint {i} ({waypoint['Latitude']}, {waypoint['Longitude']}): {closest_sites}")
+        logging.info(
+            f"Closest sites for waypoint {i} ({waypoint['Latitude']}, {waypoint['Longitude']}): {closest_sites}")
         if not closest_sites.empty:
             for _, site in closest_sites.iterrows():
                 departures = fetch_departures(site['id'])
@@ -106,13 +118,15 @@ def optimize_route(gdf, sites_data, destination_coords, step=15):
                         "direction": "N/A",
                         "state": "N/A",
                         "scheduled": "N/A",
-                        "expected": (datetime.strptime(waypoint['Time'], "%Y-%m-%d %H:%M:%S") + eta).strftime("%Y-%m-%d %H:%M:%S") if eta != "N/A" else "N/A",
+                        "expected": (datetime.strptime(waypoint['Time'], "%Y-%m-%d %H:%M:%S") + eta).strftime(
+                            "%Y-%m-%d %H:%M:%S") if eta != "N/A" else "N/A",
                         "line_id": "N/A",
                         "line_designation": mode.capitalize(),
                         "transport_mode": mode
                     })
     logging.info(f"Route generated with {len(route)} entries.")
     return route
+
 
 # Main function to integrate all steps
 def main():
@@ -140,10 +154,12 @@ def main():
     logging.info("Displaying optimized route")
     for entry in optimized_route:
         print(f"Waypoint (Lat: {entry['waypoint_lat']}, Lon: {entry['waypoint_lon']}, Time: {entry['waypoint_time']})")
-        print(f"Site (ID: {entry['site_id']}, Name: {entry['site_name']}, Lat: {entry['site_lat']}, Lon: {entry['site_lon']})")
+        print(
+            f"Site (ID: {entry['site_id']}, Name: {entry['site_name']}, Lat: {entry['site_lat']}, Lon: {entry['site_lon']})")
         print("Departures:")
         print(entry['destination'], entry['direction'], entry['state'], entry['scheduled'], entry['expected'])
         print("\n")
+
 
 if __name__ == '__main__':
     main()

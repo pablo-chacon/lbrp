@@ -16,6 +16,7 @@ deviations_url = "https://deviations.integration.sl.se/v1/messages"
 departures_url_template = "https://transport.integration.sl.se/v1/sites/{site_id}/departures"
 sites_url = "https://transport.integration.sl.se/v1/sites"
 
+
 # Make GET requests.
 def make_request(url, params=None):
     headers = {
@@ -29,6 +30,7 @@ def make_request(url, params=None):
         print(f"Failed to fetch data from {url}, Status Code: {response.status_code}, Message: {response.text}")
         return None
 
+
 # Fetch and save sites data.
 def fetch_and_save_sites_data():
     sites_data = make_request(sites_url)
@@ -39,6 +41,7 @@ def fetch_and_save_sites_data():
     else:
         print("Failed to fetch sites data.")
 
+
 # Process deviations data.
 def save_deviations():
     deviations_data = make_request(deviations_url)
@@ -47,6 +50,7 @@ def save_deviations():
         deviations_df.to_pickle('deviations.pkl')
         return deviations_df
     return pd.DataFrame()
+
 
 # Load sites data from pickle.
 def load_sites_data():
@@ -57,6 +61,7 @@ def load_sites_data():
     except Exception as e:
         print(f"Failed to load sites data: {e}")
         return pd.DataFrame()
+
 
 # Find sites near the user's location.
 def find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0):
@@ -74,6 +79,7 @@ def find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0):
 
     return nearby_sites
 
+
 # Fetch departures for a site.
 def fetch_departures(site_id, time_window=120, transport_mode=None, direction=None, line=None):
     url = departures_url_template.format(site_id=site_id)
@@ -90,12 +96,14 @@ def fetch_departures(site_id, time_window=120, transport_mode=None, direction=No
         return departures_data.get('departures', [])
     return []
 
+
 # Test a known site ID for debugging.
 def test_known_site():
     known_site_id = '1002'  # Replace with a known working site ID if available
     departures_data = fetch_departures(known_site_id, time_window=120, transport_mode="BUS")
     if departures_data:
         print(f"Departures for known site ID {known_site_id}: {departures_data}")
+
 
 # Main function to execute the script.
 def main():
@@ -117,13 +125,15 @@ def main():
         site_id = site['id']
         print(f"Processing site ID: {site_id}")  # Debugging statement
         if site_id:
-            departures_data = fetch_departures(site_id, time_window=120, transport_mode="BUS")  # Adjusted time window and transport mode
+            departures_data = fetch_departures(site_id, time_window=120,
+                                               transport_mode="BUS")  # Adjusted time window and transport mode
             if departures_data:
                 all_departures.append({"site_id": site_id, "departures": departures_data})
                 print(f"Departures for site ID {site_id}: {departures_data}")
 
     # Test a known site ID
     test_known_site()
+
 
 if __name__ == '__main__':
     main()
