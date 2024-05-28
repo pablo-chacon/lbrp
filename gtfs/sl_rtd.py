@@ -1,27 +1,21 @@
 import requests
 import pandas as pd
+from geopy.distance import geodesic
 from dotenv import load_dotenv
 import os
-import json
+
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.0
-# __Date__: 2024-05-11
-
-"""Fetch Real-Time Data from SL API. 
-    Endpoints: Timetable, Deviations, Nearby Stops.
-    Save data to local files."""
+# __Date__: 2024-05-23
 
 # Load .env vars.
 load_dotenv()
 
-# Retrieve API Key.
-API_KEY = os.getenv('SL_API_KEY')
-
 # Real-Time Data URLs.
-timetable_url = "https://transport.integration.sl.se/v1/lines"
 deviations_url = "https://deviations.integration.sl.se/v1/messages"
-nearby_stops_url = "https://journeyplanner.integration.sl.se/v1/nearbystopsv2.json"
+departures_url_template = "https://transport.integration.sl.se/v1/sites/{site_id}/departures"
+stops_url = "https://transport.integration.sl.se/v1/stop-points"
 
 
 # Make GET requests.
@@ -38,101 +32,123 @@ def make_request(url, params=None):
         return None
 
 
-# Process timetable data.
-def process_data(data):
-    # Store extracted data.
-    extracted_info = []
-    # Iterate transport mode.
-    for transport_mode, lines in data.items():
-        if not isinstance(lines, list):
-            print(f"Unexpected data type for lines: {type(lines)}")
-            continue
-        # Iterate lines in transport mode.
-        for line in lines:
-            # Extract relevant data.
-            info = {
-                "transport_mode": transport_mode,
-                "line_id": line["id"],
-                "line_name": line["name"],
-                "designation": line["designation"],
-                "group_of_lines": line.get("group_of_lines"),
-                "transport_authority_id": line["transport_authority"]["id"],
-                "transport_authority_name": line["transport_authority"]["name"],
-                "contractor_id": line.get("contractor", {}).get("id"),
-                "contractor_name": line.get("contractor", {}).get("name"),
-                "valid_from": line["valid"].get("from"),
-                "valid_to": line["valid"].get("to")
-            }
-            # Append data.
-            extracted_info.append(info)
-    # Create DataFrame.
-    df = pd.DataFrame(extracted_info)
-    return df
+# Fetch and save stops data.
+def fetch_and_save_stops_data():
+    stops_data = make_request(stops_url)
+    if stops_data:
+        stops_df = pd.json_normalize(stops_data)
+        stops_df.to_pickle('stops_data.pkl')
+        print("Stops data saved successfully.")
+    else:
+        print("Failed to fetch stops data.")
 
 
-def current_timetable(timetable_df, deviations_df):
-    # Explode deviations_df separate lines rows.
-    deviations_exploded = deviations_df.explode('scope.lines')
-    deviations_exploded = deviations_exploded.reset_index(drop=True)
-    deviations_exploded['line_id'] = deviations_exploded['scope.lines'].apply(lambda x: x['id'])
-
-    # Merge dataframes.
-    merged_data = pd.merge(timetable_df, deviations_exploded, on='line_id', suffixes=('_timetable', '_deviation'))
-
-    return merged_data
-
-
-def extract_stop_locations(nearby_stops_data):
-    nearby_stops_info = []
-    for item in nearby_stops_data['stopLocationOrCoordLocation']:
-        stop_location = item['StopLocation']
-        nearby_stops_info.append(stop_location)
-    nearby_stops_df = pd.DataFrame(nearby_stops_info)
-    return nearby_stops_df
-
-
-def save_timetable():
-    timetable_data = make_request(timetable_url, params={"transport_authority_id": 1})
-    if timetable_data:
-        timetable_df = process_data(timetable_data)
-        timetable_df.to_pickle('timetable.pkl')
-        print(timetable_df.head())
-        return timetable_df
-    return pd.DataFrame()
-
-
+# Process deviations data.
 def save_deviations():
     deviations_data = make_request(deviations_url)
     if deviations_data:
         deviations_df = pd.json_normalize(deviations_data)
         deviations_df.to_pickle('deviations.pkl')
-        print(deviations_df.head())
         return deviations_df
     return pd.DataFrame()
 
 
-def save_nearby_stops():
-    nearby_stops_data = make_request(nearby_stops_url, params={
-        "originCoordLat": 59.328284,
-        "originCoordLong": 18.016154,
-        "maxNo": 5,
-        "r": 200,
-        "key": API_KEY
-    })
-    if nearby_stops_data:
-        nearby_stops_df = extract_stop_locations(nearby_stops_data)
-        nearby_stops_df.to_pickle('nearby_stops.pkl')
-        print(nearby_stops_df.head())
-        return nearby_stops_df
-    return pd.DataFrame()
+# Load stops data from pickle.
+def load_stops_data():
+    try:
+        stops_df = pd.read_pickle('stops_data.pkl')
+        print("Stops data loaded successfully.")
+        return stops_df
+    except Exception as e:
+        print(f"Failed to load stops data: {e}")
+        return pd.DataFrame()
 
 
-def save_all_data():
-    timetable_df = save_timetable()
+# Find stops near the user's location.
+def find_nearby_stops(stops_df, user_lat, user_lon, max_distance_km=1.0):
+    nearby_stops = []
+    user_location = (user_lat, user_lon)
+
+    for _, stop in stops_df.iterrows():
+        stop_location = (stop['lat'], stop['lon'])
+        distance = geodesic(user_location, stop_location).km
+        if distance <= max_distance_km:
+            nearby_stops.append(stop)
+
+    return nearby_stops
+
+
+# Convert Stop ID.
+def convert_stop_id(stop_id):
+    stop_id_str = str(stop_id).zfill(7)
+    converted_id = f"{stop_id_str[1]}{stop_id_str[0]}{stop_id_str[2:]}"
+    print(f"Converted stop ID from {stop_id} to {converted_id}")  # Debugging statement
+    return converted_id
+
+
+# Fetch departures for a stop.
+def fetch_departures(stop_id, time_window=120, transport_mode=None, direction=None, line=None):
+    site_id = convert_stop_id(stop_id)
+    url = departures_url_template.format(site_id=site_id)
+    params = {"forecast": time_window}
+    if transport_mode:
+        params["transport"] = transport_mode
+    if direction:
+        params["direction"] = direction
+    if line:
+        params["line"] = line
+    departures_data = make_request(url, params=params)
+    if departures_data:
+        print(
+            f"Departures Data for stop ID {stop_id} (converted to {site_id}): {departures_data}")  # Debugging statement
+        return departures_data
+    return None
+
+
+# Test a known stop ID for debugging.
+def test_known_stop():
+    known_stop_id = '41483'  # Replace with a known working stop ID if available
+    departures_data = fetch_departures(known_stop_id, time_window=120, transport_mode="BUS")
+    if departures_data:
+        departures = departures_data.get('departures', [])
+        stop_deviations = departures_data.get('stop_deviations', [])
+        print(f"Departures for known stop ID {known_stop_id}: {departures}")
+        print(f"Deviations for known stop ID {known_stop_id}: {stop_deviations}")
+
+
+# Main function to execute the script.
+def main():
+    # Fetch and save stops data
+    fetch_and_save_stops_data()
+
+    # Load stops data
+    stops_df = load_stops_data()
+
     deviations_df = save_deviations()
-    nearby_stops_df = save_nearby_stops()
-    return timetable_df, deviations_df, nearby_stops_df
+    user_lat, user_lon = 59.328284, 18.016154  # Example coordinates (replace with user location)
+    print(f"Latitude: {user_lat}, Longitude: {user_lon}")  # Debugging statement
+    nearby_stops = find_nearby_stops(stops_df, user_lat, user_lon, max_distance_km=1.0)
+
+    print(f"Nearby Stops: {nearby_stops}")  # Debugging statement
+
+    all_departures = []
+    for stop in nearby_stops:
+        stop_id = stop['id']
+        print(f"Processing stop ID: {stop_id}")  # Debugging statement
+        if stop_id:
+            departures_data = fetch_departures(stop_id, time_window=120,
+                                               transport_mode="BUS")  # Adjusted time window and transport mode
+            if departures_data:
+                departures = departures_data.get('departures', [])
+                stop_deviations = departures_data.get('stop_deviations', [])
+                all_departures.append(
+                    {"stop_id": stop_id, "departures": departures, "stop_deviations": stop_deviations})
+                print(f"Departures for stop ID {stop_id}: {departures}")
+                print(f"Deviations for stop ID {stop_id}: {stop_deviations}")
+
+    # Test a known stop ID
+    test_known_stop()
 
 
 if __name__ == '__main__':
-    save_all_data()
+    main()

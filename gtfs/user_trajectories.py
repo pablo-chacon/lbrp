@@ -9,6 +9,9 @@ from shapely.geometry import Point, LineString
 from math import radians
 import sl_rtd as sl
 
+# __Author__: pablo-chacon
+# __Version__: 1.0.0
+# __Date__: 2024-05-23
 
 def parse_gpx(file_path):
     with open(file_path, 'r') as file:
@@ -33,7 +36,9 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     # Filter outliers (e.g., remove points with unrealistic speeds)
     df['geometry'] = df.apply(lambda row: Point(row['Longitude'], row['Latitude']), axis=1)
     df['prev_point'] = df['geometry'].shift()
-    df['distance'] = df.apply(lambda row: row['geometry'].distance(row['prev_point']) if row['prev_point'] else 0, axis=1)
+    df['distance'] = df.apply(lambda row: row['geometry'].distance(row['prev_point']) if row['prev_point'] else 0,
+                              axis=1)
+
 
 def identify_destinations(gdf, min_stay_duration=1):
     gdf['TimeDelta'] = gdf['Time'].diff().dt.total_seconds() / 3600
@@ -42,7 +47,7 @@ def identify_destinations(gdf, min_stay_duration=1):
     return destinations
 
 
-def load_and_process_user_trajectories():
+def process_user_trajectories():
     gpx_folder = 'user_profiles'
     user_profiles = []
     for filename in os.listdir(gpx_folder):
@@ -62,7 +67,7 @@ def load_and_process_user_trajectories():
     return gdf, identify_destinations(gdf)
 
 
-# Function to aggregate geodata by time intervals
+# Aggregate geodata time intervals.
 def aggregate_by_time(df, time_interval='hourly'):
     df['Timestamp'] = pd.to_datetime(df['Timestamp'])
     if time_interval == 'hourly':
@@ -70,7 +75,11 @@ def aggregate_by_time(df, time_interval='hourly'):
     elif time_interval == 'daily':
         df['TimeGroup'] = df['Timestamp'].dt.date
 
+
 if __name__ == "__main__":
-    gdf, destinations = load_and_process_user_trajectories()
-    print(gdf.head())
-    print(destinations.head())
+    # Process data save to .pkl.
+    gdf, destinations = process_user_trajectories()
+    gdf.to_pickle('gdf.pkl')
+    destinations.to_pickle('dest.pkl')
+    print("gdf: ", gdf.head())
+    print("destinations: ", destinations.head())
