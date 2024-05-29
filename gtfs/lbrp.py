@@ -128,7 +128,6 @@ def optimize_route(gdf, sites_data, destination_coords, step=15):
     return route
 
 
-# Main function to integrate all steps
 def main():
     logging.info("Loading user trajectory data")
     gdf = pd.read_pickle('gdf.pkl')

@@ -1,5 +1,6 @@
+# user_patterns.py
+
 import os
-import gpxpy
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
@@ -8,42 +9,21 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 import matplotlib.pyplot as plt
 import numpy as np
+import user_trajectories as ut
 
-
-# Function to load user profiles
-def load_user_profiles(profiles_folder):
-    profiles = []
-    for filename in os.listdir(profiles_folder):
-        if filename.endswith('.gpx'):
-            profile_path = os.path.join(profiles_folder, filename)
-            with open(profile_path, 'r') as file:
-                gpx = gpxpy.parse(file)
-                points_data = []
-                for track in gpx.tracks:
-                    for segment in track.segments:
-                        for point in segment.points:
-                            points_data.append({
-                                'Latitude': point.latitude,
-                                'Longitude': point.longitude,
-                                'Elevation': point.elevation,
-                                'Timestamp': point.time if point.time else "N/A"
-                                # Extract timestamp from GPX point, handle missing values
-                            })
-                profile_df = pd.DataFrame(points_data)
-                profiles.append(profile_df)
-    if profiles:
-        return pd.concat(profiles, ignore_index=True)
-    else:
-        return pd.DataFrame()
-
+# Directory containing GPX files
+user_profiles_folder = 'user_profiles'
 
 # Function to preprocess geodata
 def preprocess_geodata(df):
+    # Rename 'Time' column to 'Timestamp' for consistency
+    df = df.rename(columns={'Time': 'Timestamp'})
+
     # Drop duplicates
     df = df.drop_duplicates(subset=['Latitude', 'Longitude'])
 
     # Handle missing 'Timestamp' values
-    df['Timestamp'].replace("N/A", pd.NaT, inplace=True)
+    df.loc[df['Timestamp'] == "N/A", 'Timestamp'] = pd.NaT
 
     # Filter outliers (e.g., remove points with unrealistic speeds)
     df['geometry'] = df.apply(lambda row: Point(row['Longitude'], row['Latitude']), axis=1)
@@ -53,9 +33,8 @@ def preprocess_geodata(df):
 
     speed_threshold = 0.1  # Example speed threshold in km/s
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
-    df['Time'] = df['Timestamp']
-    df['prev_time'] = df['Time'].shift()
-    df['time_diff'] = (df['Time'] - df['prev_time']).dt.total_seconds()
+    df['prev_time'] = df['Timestamp'].shift()
+    df['time_diff'] = (df['Timestamp'] - df['prev_time']).dt.total_seconds()
     df['speed'] = df['distance'] / df['time_diff']
 
     # Filter rows where speed exceeds threshold
@@ -75,6 +54,11 @@ def aggregate_by_time(df, time_interval='hourly'):
     # Exclude non-numeric columns for aggregation
     numeric_df = df.select_dtypes(include=[np.number])
     aggregated_data = numeric_df.groupby(df['TimeGroup']).mean().reset_index()
+
+    # Ensure 'Timestamp' and 'geometry' columns are included
+    aggregated_data['Timestamp'] = df['TimeGroup']
+    aggregated_data['geometry'] = df.groupby('TimeGroup')['geometry'].first().values
+
     return aggregated_data
 
 
@@ -82,6 +66,8 @@ def aggregate_by_time(df, time_interval='hourly'):
 def analyze_movement(df):
     if 'Timestamp' not in df.columns:
         raise ValueError("Timestamp column not found in DataFrame.")
+    if 'geometry' not in df.columns:
+        raise ValueError("Geometry column not found in DataFrame.")
 
     df = df.sort_values(by='Timestamp')
     df['next_point'] = df['geometry'].shift(-1)
@@ -110,8 +96,11 @@ def build_model(df):
     features = df[['speed', 'acceleration']]
     labels = df['cluster']
 
+    # Filter out infinite or very large values
+    features = features.replace([np.inf, -np.inf], np.nan).dropna()
+
     model = DecisionTreeClassifier()
-    model.fit(features, labels)
+    model.fit(features, labels.loc[features.index])
 
     return model
 
@@ -135,30 +124,48 @@ def evaluate_and_refine_model(model, validation_data):
     return model
 
 
-# Function to visualize movement pattern
+# Function to visualize movement pattern with clearer scattering
 def visualize_movement_pattern(df):
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(12, 10))
+    unique_clusters = df['cluster'].unique()
+    colors = plt.cm.get_cmap('tab20', len(unique_clusters))  # Use a colormap with enough distinct colors
 
-    for cluster, group_data in df.groupby('cluster'):
-        x = group_data['Longitude']
-        y = group_data['Latitude']
-        ax.scatter(x, y, label=f'Cluster {cluster}', alpha=0.5)
+    for cluster in unique_clusters:
+        cluster_data = df[df['cluster'] == cluster]
+        x = cluster_data['Longitude']
+        y = cluster_data['Latitude']
+        ax.scatter(x, y, s=50, edgecolor='k', alpha=0.6, label=f'Cluster {cluster}', color=colors(cluster))
 
     ax.set_xlabel('Longitude')
     ax.set_ylabel('Latitude')
     ax.set_title('Movement Patterns')
-    ax.legend()
+    ax.legend(loc='best')
+    plt.grid(True)
     plt.show()
 
+# Directory containing GPX files
+user_profiles_folder = 'user_profiles'
 
-# Main function
+def load_and_process_all_gpx_files(folder):
+    all_data = pd.DataFrame()
+
+    for filename in os.listdir(folder):
+        if filename.endswith(".gpx"):
+            filepath = os.path.join(folder, filename)
+            user_data = ut.parse_gpx(filepath)
+            all_data = pd.concat([all_data, user_data], ignore_index=True)
+
+    return all_data
+
 def main():
-    # Load user profiles
-    profiles_folder = 'user_profiles'
-    user_profiles = load_user_profiles(profiles_folder)
+    # Load and process all GPX files
+    all_user_data = load_and_process_all_gpx_files(user_profiles_folder)
+
+    # Save the consolidated DataFrame to a pickle file
+    all_user_data.to_pickle('all_user_data.pkl')
 
     # Preprocess geodata
-    preprocessed_data = preprocess_geodata(user_profiles)
+    preprocessed_data = preprocess_geodata(all_user_data)
 
     # Aggregate geodata by time intervals
     time_interval = 'hourly'  # Options: 'hourly', 'daily'
@@ -179,7 +186,6 @@ def main():
 
     # Visualize movement pattern
     visualize_movement_pattern(patterns)
-
 
 if __name__ == "__main__":
     main()
