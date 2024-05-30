@@ -12,9 +12,9 @@ import os
 load_dotenv()
 
 # Real-Time Data URLs.
-deviations_url = "https://deviations.integration.sl.se/v1/messages"
-departures_url_template = "https://transport.integration.sl.se/v1/sites/{site_id}/departures"
-sites_url = "https://transport.integration.sl.se/v1/sites"
+deviations_url = 'https://deviations.integration.sl.se/v1/messages?'
+departures_url_template = 'https://transport.integration.sl.se/v1/sites/{site_id}/departures'
+sites_url = 'https://transport.integration.sl.se/v1/sites'
 
 
 # Make GET requests.
@@ -81,7 +81,7 @@ def find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0):
 
 
 # Fetch departures for a site.
-def fetch_departures(site_id, time_window=120, transport_mode=None, direction=None, line=None):
+def fetch_departures(site_id, time_window=15, transport_mode=None, direction=None, line=None):
     url = departures_url_template.format(site_id=site_id)
     params = {"forecast": time_window}
     if transport_mode:

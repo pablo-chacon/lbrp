@@ -1,91 +1,78 @@
 import pandas as pd
-import geopandas as gpd
-import folium
+import numpy as np
+from sklearn.cluster import DBSCAN
 import pickle
-from folium.plugins import PolyLineOffset
-import logging
+
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
 # __Date__: 2024-05-23
 
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Load data
-with open('generalized_optimized_timetable.pkl', 'rb') as f:
-    generalized_optimized_timetable = pickle.load(f)
-
-with open('all_user_data.pkl', 'rb') as f:
-    all_user_data = pickle.load(f)
-
-with open('optimized_route.pkl', 'rb') as f:
-    optimized_route = pickle.load(f)
-
-# Ensure optimized_route is a DataFrame
-optimized_route_df = pd.DataFrame(optimized_route)
-
-
-def plot_all_user_data(map_obj, data):
-    for _, row in data.iterrows():
-        folium.CircleMarker(
-            location=[row['Latitude'], row['Longitude']],
-            radius=3,
-            color='blue',
-            fill=True,
-            fill_color='blue',
-            fill_opacity=0.6,
-            popup=f"User: {row['user_id']}\nTime: {row['Time']}"
-        ).add_to(map_obj)
-
-
-def plot_optimized_route(map_obj, data):
-    for _, row in data.iterrows():
-        folium.CircleMarker(
-            location=[row['waypoint_lat'], row['waypoint_lon']],
-            radius=3,
-            color='red',
-            fill=True,
-            fill_color='red',
-            fill_opacity=0.6,
-            popup=f"Route: {row['line_designation']}"
-        ).add_to(map_obj)
-
-
-def plot_generalized_timetable(map_obj, data):
-    for _, row in data.iterrows():
-        folium.PolyLine(
-            locations=[[row['site_lat_dest'], row['site_lon_dest']], [row['destination_lat'], row['destination_lon']]],
-            color='green',
-            weight=2,
-            opacity=0.6,
-            popup=f"Route ID: {row['line_id']}\nSite: {row['site_id']}\nDestination: {row['destination']}"
-        ).add_to(map_obj)
-
-
 def main():
-    logging.info("Generalized optimized timetable columns: %s", generalized_optimized_timetable.columns)
-    logging.info("All user data columns: %s", all_user_data.columns)
-    logging.info("Optimized route columns: %s", optimized_route_df.columns)
+    # Load user trajectory data
+    all_user_data = pd.read_pickle('all_user_data.pkl')
+    print("All user data:", all_user_data.head())
 
-    if 'destination_lat' not in optimized_route_df.columns or 'destination_lon' not in optimized_route_df.columns:
-        optimized_route_df['destination_lat'] = optimized_route_df['site_lat']
-        optimized_route_df['destination_lon'] = optimized_route_df['site_lon']
+    # Preprocess data
+    all_user_data['Time'] = pd.to_datetime(all_user_data['Time'])
+    all_user_data.sort_values(by=['user_id', 'Time'], inplace=True)
 
-    # Initialize the map centered around an average location
-    map_center = [all_user_data['Latitude'].mean(), all_user_data['Longitude'].mean()]
-    m = folium.Map(location=map_center, zoom_start=10)
+    # Cluster user trajectories
+    clustering = DBSCAN(eps=0.01, min_samples=5).fit(all_user_data[['Latitude', 'Longitude']])
+    all_user_data['cluster'] = clustering.labels_
 
-    # Plot data
-    plot_all_user_data(m, all_user_data)
-    plot_optimized_route(m, optimized_route_df)
-    plot_generalized_timetable(m, generalized_optimized_timetable)
+    # Generate representative routes
+    representative_routes = all_user_data.groupby('cluster')[['Longitude', 'Latitude']].mean()
+    print("Representative Routes DataFrame:", representative_routes.head())
 
-    # Save the map
-    map_file = 'user_patterns_map.html'
-    m.save(map_file)
-    logging.info("Map has been saved as %s", map_file)
+    # Load optimized route data
+    with open('optimized_route.pkl', 'rb') as f:
+        optimized_route = pickle.load(f)
+    if isinstance(optimized_route, list):
+        optimized_route_df = pd.DataFrame(optimized_route)
+    else:
+        optimized_route_df = optimized_route
+
+    if optimized_route_df.empty:
+        print("Optimized Route DataFrame is empty")
+        return
+
+    optimized_route_df.rename(columns={
+        'waypoint_lon': 'Longitude',
+        'waypoint_lat': 'Latitude',
+        'site_lat': 'site_lat',
+        'site_lon': 'site_lon',
+        'site_lat': 'site_lat_dest',
+        'site_lon': 'site_lon_dest'
+    }, inplace=True)
+
+    print("Optimized Route DataFrame:", optimized_route_df.head())
+
+    # Match representative routes to optimized routes
+    matched_routes = []
+    for _, row in representative_routes.iterrows():
+        matched = optimized_route_df[
+            ((optimized_route_df['Longitude'] - row['Longitude']).abs() < 0.001) &
+            ((optimized_route_df['Latitude'] - row['Latitude']).abs() < 0.001)
+            ]
+        matched_routes.append(matched)
+    matched_routes_df = pd.concat(matched_routes)
+    print("Matched Routes DataFrame:", matched_routes_df.head())
+
+    # Generate generalized optimized timetable
+    matched_routes_df['scheduled'] = pd.to_datetime(matched_routes_df['scheduled'])
+    matched_routes_df['expected'] = pd.to_datetime(matched_routes_df['expected'])
+    generalized_timetable = matched_routes_df.groupby(['site_id', 'line_id', 'destination']).agg({
+        'scheduled': 'mean',
+        'expected': 'mean',
+        'transport_mode': 'first',
+        'site_lat_dest': 'first',
+        'site_lon_dest': 'first'
+    }).reset_index()
+
+    print("Generalized Optimized Timetable:", generalized_timetable.head())
+    generalized_timetable.to_pickle('generalized_optimized_timetable.pkl')
 
 
 if __name__ == '__main__':
