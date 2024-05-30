@@ -5,11 +5,17 @@ import folium
 from streamlit_folium import st_folium
 import logging
 
-# Set up logging
+
+# __Author__: pablo-chacon
+# __Version__: 1.0.2
+# __Date__: 2024-05-23
+
+
+# Set up logging.
 logging.basicConfig(level=logging.INFO)
 
 
-# Function to run scripts and generate data
+# Run scripts, generate data.
 def run_scripts():
     # Run user_trajectories.py
     subprocess.run(["python", "user_trajectories.py"])
@@ -27,7 +33,7 @@ def load_data(file_path):
     return pd.read_pickle(file_path)
 
 
-# Function to create a folium map from DataFrame
+# Create folium map from DataFrame.
 def create_folium_map(data, title):
     if 'Latitude' in data.columns and 'Longitude' in data.columns:
         m = folium.Map(location=[data['Latitude'].mean(), data['Longitude'].mean()], zoom_start=12)
@@ -52,7 +58,7 @@ def create_folium_map(data, title):
     return m
 
 
-# Function to display folium map from HTML file
+# Display folium map from HTML.
 def display_map(html_file_path):
     with open(html_file_path, 'r') as file:
         map_html = file.read()

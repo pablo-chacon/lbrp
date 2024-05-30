@@ -52,7 +52,7 @@ def save_deviations():
     return pd.DataFrame()
 
 
-# Load sites data from pickle.
+# Load sites data.
 def load_sites_data():
     try:
         sites_df = pd.read_pickle('sites_data.pkl')
@@ -99,7 +99,7 @@ def fetch_departures(site_id, time_window=15, transport_mode=None, direction=Non
 
 # Test a known site ID for debugging.
 def test_known_site():
-    known_site_id = '1002'  # Replace with a known working site ID if available
+    known_site_id = '1002'
     departures_data = fetch_departures(known_site_id, time_window=120, transport_mode="BUS")
     if departures_data:
         print(f"Departures for known site ID {known_site_id}: {departures_data}")
@@ -131,7 +131,7 @@ def main():
                 all_departures.append({"site_id": site_id, "departures": departures_data})
                 print(f"Departures for site ID {site_id}: {departures_data}")
 
-    # Test a known site ID
+    # Test known site ID.
     test_known_site()
 
 
