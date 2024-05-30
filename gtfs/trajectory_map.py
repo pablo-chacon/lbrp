@@ -1,82 +1,98 @@
-import math
-import os
-import gpxpy
+import folium
 import pandas as pd
-import geopandas as gpd
-import matplotlib.pyplot as plt
-from scipy.constants import R
-from shapely.geometry import Point, LineString
-from math import radians
-import sl_rtd as sl
+
+# Load data
+regenerated_48_hour_data = pd.read_pickle('regenerated_48_hour_data.pkl')
+all_user_data = pd.read_pickle('all_user_data.pkl')
+optimized_route_df = pd.read_pickle('optimized_route.pkl')
+optimized_route_df = pd.DataFrame(optimized_route_df)  # Ensure it's a DataFrame
+generalized_optimized_timetable = pd.read_pickle('generalized_optimized_timetable.pkl')
+
+# Ensure waypoint columns are present in generalized_optimized_timetable
+if 'waypoint_lat' not in generalized_optimized_timetable.columns or 'waypoint_lon' not in generalized_optimized_timetable.columns:
+    generalized_optimized_timetable = pd.merge(generalized_optimized_timetable,
+                                               optimized_route_df[['site_id', 'waypoint_lat', 'waypoint_lon']],
+                                               on='site_id', how='left')
 
 
-# Function to parse GPX file and extract waypoint data
-def parse_gpx(file_path):
-    with open(file_path, 'r') as file:
-        gpx = gpxpy.parse(file)
-        points_data = []
-        for track in gpx.tracks:
-            for segment in track.segments:
-                for point in segment.points:
-                    points_data.append({'Latitude': point.latitude, 'Longitude': point.longitude, 'Time': point.time})
-        return pd.DataFrame(points_data)
+# Function to plot 48-hour data
+def plot_48_hour_data(m, data):
+    for user_id, user_data in data.groupby('user_id'):
+        folium.PolyLine(user_data[['Latitude', 'Longitude']].values, color='purple', weight=2.5, opacity=0.8).add_to(m)
+        for _, row in user_data.iterrows():
+            folium.CircleMarker(
+                location=[row['Latitude'], row['Longitude']],
+                radius=5,
+                color='purple',
+                fill=True,
+                fill_color='purple',
+                fill_opacity=0.6
+            ).add_to(m)
 
 
-# Calculate the great circle distance between gps points
-def haversine_distance(lat1, lon1, lat2, lon2):
-    # Convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+# Function to plot all user data
+def plot_all_user_data(m, data):
+    for user_id, user_data in data.groupby('user_id'):
+        folium.PolyLine(user_data[['Latitude', 'Longitude']].values, color='blue', weight=2.5, opacity=0.8).add_to(m)
+        for _, row in user_data.iterrows():
+            folium.CircleMarker(
+                location=[row['Latitude'], row['Longitude']],
+                radius=3,
+                color='blue',
+                fill=True,
+                fill_color='blue',
+                fill_opacity=0.6
+            ).add_to(m)
 
-    # Haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    distance = R * c
 
-    return distance
+# Function to plot optimized route
+def plot_optimized_route(m, data):
+    if 'site_lat' not in data.columns or 'site_lon' not in data.columns:
+        print("Optimized route data does not contain 'site_lat' or 'site_lon' columns.")
+        return
+    for _, row in data.iterrows():
+        folium.Marker(
+            location=[row['site_lat'], row['site_lon']],
+            popup=f"Route: {row['line_id']}<br>Stop: {row['site_name']}",
+            icon=folium.Icon(color='red', icon='info-sign')
+        ).add_to(m)
+        folium.PolyLine(
+            locations=[[row['site_lat'], row['site_lon']], [row['waypoint_lat'], row['waypoint_lon']]],
+            color='red', weight=2, opacity=0.7
+        ).add_to(m)
 
 
-# Read GPX files and parse waypoints
-gpx_folder = 'user_profiles'
-user_profiles = []
+# Function to plot generalized timetable
+def plot_generalized_timetable(m, data):
+    if 'site_lat_dest' not in data.columns or 'site_lon_dest' not in data.columns:
+        print("Generalized optimized timetable data does not contain 'site_lat_dest' or 'site_lon_dest' columns.")
+        return
+    if 'waypoint_lat' not in data.columns or 'waypoint_lon' not in data.columns:
+        print("Generalized optimized timetable data does not contain 'waypoint_lat' or 'waypoint_lon' columns.")
+        return
+    for _, row in data.iterrows():
+        folium.Marker(
+            location=[row['site_lat_dest'], row['site_lon_dest']],
+            popup=f"Route: {row['line_id']}<br>Destination: {row['destination']}",
+            icon=folium.Icon(color='green', icon='info-sign')
+        ).add_to(m)
+        folium.PolyLine(
+            locations=[[row['site_lat_dest'], row['site_lon_dest']], [row['waypoint_lat'], row['waypoint_lon']]],
+            color='orange', weight=2, opacity=0.7, dash_array='5,10'
+        ).add_to(m)
 
-for filename in os.listdir(gpx_folder):
-    if filename.endswith('.gpx'):
-        gpx_file_path = os.path.join(gpx_folder, filename)
-        df = parse_gpx(gpx_file_path)
-        user_profiles.append(df)
 
-# Concatenate DataFrames into one
-df = pd.concat(user_profiles, ignore_index=True)
+# Define map center
+map_center = [all_user_data['Latitude'].mean(), all_user_data['Longitude'].mean()]
 
-# Create GeoDataFrame
-gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude))
+# Create the map
+m = folium.Map(location=map_center, zoom_start=12, tiles='OpenStreetMap')
 
-# Calculate distance and speed
-total_distance = 0
-for i in range(len(gdf) - 1):
-    lat1, lon1 = gdf.iloc[i].Latitude, gdf.iloc[i].Longitude
-    lat2, lon2 = gdf.iloc[i + 1].Latitude, gdf.iloc[i + 1].Longitude
-    total_distance += haversine_distance(lat1, lon1, lat2, lon2)
+# Plot data
+plot_48_hour_data(m, regenerated_48_hour_data)
+plot_all_user_data(m, all_user_data)
+plot_optimized_route(m, optimized_route_df)
+plot_generalized_timetable(m, generalized_optimized_timetable)
 
-gdf['TimeDelta'] = gdf['Time'].diff().dt.total_seconds() / 3600
-gdf['Speed'] = total_distance / gdf['TimeDelta']
-
-# Plot waypoints
-gdf.plot(marker='o', color='red', markersize=5)
-plt.xlabel('Longitude')
-plt.ylabel('Latitude')
-plt.title('Waypoints Visualization')
-plt.show()
-
-# Plot trajectory
-trajectory = LineString(gdf['geometry'])
-trajectory_gdf = gpd.GeoDataFrame(geometry=[trajectory])
-trajectory_gdf.plot()
-plt.xlabel('Longitude')
-plt.ylabel('Latitude')
-plt.title('Trajectory')
-plt.show()
-
-print(gdf.head())
+# Save the map
+m.save('simulated_trajectory_map.html')
