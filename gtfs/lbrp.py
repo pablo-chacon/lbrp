@@ -39,9 +39,9 @@ def find_nearby_sites(lat, lon, sites_data, radius=1000, n=3):
 
 
 # Fetch real-time departures.
-def fetch_departures(site_id, time_window, transport_mode='BUS'):
+def fetch_departures(site_id, time_window):
     try:
-        departures = sl.fetch_departures(site_id, time_window, transport_mode)
+        departures = sl.fetch_departures(site_id, time_window)
         if departures:
             logging.info(f"Fetched departures for site ID {site_id}: {departures}")
             return departures
