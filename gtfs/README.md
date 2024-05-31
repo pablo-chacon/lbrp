@@ -82,7 +82,9 @@ bash
 
 Run the Streamlit Application
 
-After generating the required data, you can run the Streamlit application to visualize the results.
+After generating the required data, you can run the Streamlit application to visualize the results. 
+The data generation takes time due to it runs a simulation of a 48 h period. Simulation time is set to 20 mins.
+This is to be able to get Real-Time-Data in a realistic way.
 
 bash
 
