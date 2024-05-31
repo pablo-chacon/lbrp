@@ -1,7 +1,8 @@
 Public Transportation Optimization Project
-Overview
-Background
 
+Overview
+Proof-of-Concept (PoC) to optimize route by user behaviour. This is my degree project regarding Software Development Mobility Services. 
+Background
 I’m always in a rush, and I’m fast. So when using a route planner app, I have to make multiple searches and puzzle it together to "my route." Route planners tend to exclude some routes because the app assumes I wouldn’t make it, but I would. Therefore, I concluded that there’s room for optimization on the end-user side of public transportation. Since there are physical limitations such as infrastructure, optimizing/personalizing routes based on end-users' historical and location data (latitude, longitude, time, speed) can improve the user experience.
 Purpose
 
