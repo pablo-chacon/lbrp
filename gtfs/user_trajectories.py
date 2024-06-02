@@ -7,8 +7,9 @@ from datetime import timedelta
 
 
 # __Author__: pablo-chacon
-# __Version__: 1.0.2
-# __Date__: 2024-05-23
+# __Version__: 1.0.3
+# __Date__: 2024-06-01
+
 
 def parse_gpx(gpx_file_path):
     tree = ET.parse(gpx_file_path)
@@ -73,14 +74,17 @@ def regenerate_48_hour_movements(all_user_data):
     return regenerated_data
 
 
-if __name__ == "__main__":
+def main():
     gdf, destinations = process_user_trajectories()
-    print("gdf:", gdf.head())
-    print("destinations:", destinations.head())
     gdf.to_pickle('all_user_data.pkl')
+    destinations.to_pickle('dest.pkl')
 
     # Regenerate 48-hour movements.
     regenerated_data = regenerate_48_hour_movements(pd.read_pickle('all_user_data.pkl'))
 
     # Save regenerated data.
     regenerated_data.to_pickle('regenerated_48_hour_data.pkl')
+
+
+if __name__ == "__main__":
+    main()

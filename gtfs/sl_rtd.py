@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 import os
 
 # __Author__: pablo-chacon
-# __Version__: 1.0.2
-# __Date__: 2024-05-23
+# __Version__: 1.0.3
+# __Date__: 2024-06-01
 
 # Load .env vars.
 load_dotenv()
@@ -17,7 +17,6 @@ departures_url_template = 'https://transport.integration.sl.se/v1/sites/{site_id
 sites_url = 'https://transport.integration.sl.se/v1/sites'
 
 
-# Make GET requests.
 def make_request(url, params=None):
     headers = {
         'Content-Type': 'application/json'
@@ -31,7 +30,6 @@ def make_request(url, params=None):
         return None
 
 
-# Fetch and save sites data.
 def fetch_and_save_sites_data():
     sites_data = make_request(sites_url)
     if sites_data:
@@ -42,7 +40,6 @@ def fetch_and_save_sites_data():
         print("Failed to fetch sites data.")
 
 
-# Process deviations data.
 def save_deviations():
     deviations_data = make_request(deviations_url)
     if deviations_data:
@@ -52,7 +49,6 @@ def save_deviations():
     return pd.DataFrame()
 
 
-# Load sites data.
 def load_sites_data():
     try:
         sites_df = pd.read_pickle('sites_data.pkl')
@@ -63,7 +59,6 @@ def load_sites_data():
         return pd.DataFrame()
 
 
-# Find sites near the user's location.
 def find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0):
     nearby_sites = []
     user_location = (user_lat, user_lon)
@@ -80,7 +75,6 @@ def find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0):
     return nearby_sites
 
 
-# Fetch departures for a site.
 def fetch_departures(site_id, time_window=15, transport_mode=None, direction=None, line=None):
     url = departures_url_template.format(site_id=site_id)
     params = {"forecast": time_window}
@@ -92,12 +86,11 @@ def fetch_departures(site_id, time_window=15, transport_mode=None, direction=Non
         params["line"] = line
     departures_data = make_request(url, params=params)
     if departures_data:
-        print(f"Departures Data for site ID {site_id}: {departures_data}")  # Debugging statement
+        print(f"Departures Data for site ID {site_id}: {departures_data}")
         return departures_data.get('departures', [])
     return []
 
 
-# Test a known site ID for debugging.
 def test_known_site():
     known_site_id = '1002'
     departures_data = fetch_departures(known_site_id, time_window=120, transport_mode="BUS")
@@ -105,33 +98,26 @@ def test_known_site():
         print(f"Departures for known site ID {known_site_id}: {departures_data}")
 
 
-# Main function to execute the script.
 def main():
-    # Fetch and save sites data
     fetch_and_save_sites_data()
-
-    # Load sites data
     sites_df = load_sites_data()
     print(sites_df.head())
     deviations_df = save_deviations()
-    user_lat, user_lon = 59.328284, 18.016154  # Example coordinates (replace with user location)
-    print(f"Latitude: {user_lat}, Longitude: {user_lon}")  # Debugging statement
+    user_lat, user_lon = 59.328284, 18.016154
+    print(f"Latitude: {user_lat}, Longitude: {user_lon}")
     nearby_sites = find_nearby_sites(sites_df, user_lat, user_lon, max_distance_km=1.0)
-
-    print(f"Nearby Sites: {nearby_sites}")  # Debugging statement
+    print(f"Nearby Sites: {nearby_sites}")
 
     all_departures = []
     for site in nearby_sites:
         site_id = site['id']
-        print(f"Processing site ID: {site_id}")  # Debugging statement
+        print(f"Processing site ID: {site_id}")
         if site_id:
-            departures_data = fetch_departures(site_id, time_window=120,
-                                               transport_mode="BUS")  # Adjusted time window and transport mode
+            departures_data = fetch_departures(site_id, time_window=120, transport_mode="BUS")
             if departures_data:
                 all_departures.append({"site_id": site_id, "departures": departures_data})
                 print(f"Departures for site ID {site_id}: {departures_data}")
 
-    # Test known site ID.
     test_known_site()
 
 
