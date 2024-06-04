@@ -7,15 +7,17 @@ from sklearn.preprocessing import StandardScaler
 from shapely.geometry import Point
 from datetime import datetime, timedelta
 
+
 # __Author__: pablo-chacon
-# __Version__: 1.0.2
-# __Date__: 2024-05-23
+# __Version__: 1.0.3
+# __Date__: 2024-06-01
 
 def preprocess_geodata(df):
     df['Time'] = pd.to_datetime(df['Time'])
-    df = df.sort_values(by='Time')
+    df = df.sort_values(by=['Time'])
     df['geometry'] = df.apply(lambda row: Point(row['Longitude'], row['Latitude']), axis=1)
     return df
+
 
 def analyze_movement(df):
     df['next_point'] = df['geometry'].shift(-1)
@@ -25,6 +27,7 @@ def analyze_movement(df):
     df['speed'] = df.apply(lambda row: row['distance'] / row['time_diff'] if row['time_diff'] > 0 else 0, axis=1)
     return df
 
+
 def cluster_user_trajectories(df, n_clusters=5):
     coords = df[['Longitude', 'Latitude']].values
     scaler = StandardScaler()
@@ -33,11 +36,13 @@ def cluster_user_trajectories(df, n_clusters=5):
     df['cluster'] = kmeans.fit_predict(coords_scaled)
     return df, kmeans
 
+
 def generate_representative_routes(df):
     numeric_cols = ['Longitude', 'Latitude']
     clusters = df.groupby('cluster')
     representative_routes = clusters[numeric_cols].mean()
     return representative_routes
+
 
 def match_routes_to_optimized(representative_routes, optimized_route):
     matched_routes = []
@@ -49,6 +54,7 @@ def match_routes_to_optimized(representative_routes, optimized_route):
         matched_routes.append(matched)
     return pd.concat(matched_routes)
 
+
 def generate_generalized_timetable(matched_routes):
     matched_routes['scheduled'] = pd.to_datetime(matched_routes['scheduled'])
     matched_routes['expected'] = pd.to_datetime(matched_routes['expected'])
@@ -59,7 +65,8 @@ def generate_generalized_timetable(matched_routes):
     }).reset_index()
     return generalized_timetable
 
-def main():
+
+def user_patterns():
     user_profiles_folder = 'user_profiles'
     all_user_data = pd.read_pickle('all_user_data.pkl')
 
@@ -73,8 +80,12 @@ def main():
     print("Representative Routes DataFrame:", representative_routes.head())
 
     # Load optimized route
-    with open('optimized_route.pkl', 'rb') as f:
-        optimized_route = pickle.load(f)
+    try:
+        with open('optimized_route.pkl', 'rb') as f:
+            optimized_route = pickle.load(f)
+    except Exception as e:
+        print(f"Error loading optimized_route.pkl: {e}")
+        return
 
     if isinstance(optimized_route, list):
         optimized_route_df = pd.DataFrame(optimized_route)
@@ -93,5 +104,6 @@ def main():
 
     generalized_optimized_timetable.to_pickle('generalized_optimized_timetable.pkl')
 
+
 if __name__ == '__main__':
-    main()
+    user_patterns()

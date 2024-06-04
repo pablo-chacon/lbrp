@@ -1,13 +1,13 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import logging
-from user_patterns import main as user_patterns_main
-from sl_rtd import main as sl_rtd_main
-from trajectory_map import create_trajectory_map
-from user_trajectories import main as user_trajectories_main
+import user_patterns as up
+import sl_rtd as sl
+import trajectory_map as tm
+import user_trajectories as ut
+import lbrp as lbrp
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
@@ -19,10 +19,11 @@ logging.basicConfig(level=logging.INFO)
 
 # Run scripts, generate data.
 def run_scripts():
-    user_trajectories_main()
-    user_patterns_main()
-    sl_rtd_main()
-    create_trajectory_map()
+    ut.user_trajectory()
+    lbrp.lbrp()
+    up.user_patterns()
+    sl.rtd()
+    tm.create_trajectory_map()
 
 
 # Load data functions
@@ -30,7 +31,7 @@ def run_scripts():
 def load_data(file_path):
     try:
         data = pd.read_pickle(file_path)
-        return data
+        return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Error loading {file_path}: {e}")
         return None
@@ -93,13 +94,14 @@ with tab2:
 with tab3:
     optimized_data = load_data("optimized_route.pkl")
     if optimized_data is not None:
-        optimized_data = pd.DataFrame(optimized_data)
+        original_data = load_data("gdf.pkl")
         st.header("Optimization Comparison")
         st.subheader("Before Optimization")
         folium_map_before = create_folium_map(all_user_data, "Before Optimization")
         if folium_map_before:
             st_folium(folium_map_before, width=700, key="before_optimization")
 
+        optimized_data = load_data('optimized_route.pkl')
         st.subheader("After Optimization")
         folium_map_after = create_folium_map(optimized_data, "After Optimization")
         if folium_map_after:

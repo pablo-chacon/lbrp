@@ -98,7 +98,7 @@ def test_known_site():
         print(f"Departures for known site ID {known_site_id}: {departures_data}")
 
 
-def main():
+def rtd():
     fetch_and_save_sites_data()
     sites_df = load_sites_data()
     print(sites_df.head())
@@ -121,5 +121,3 @@ def main():
     test_known_site()
 
 
-if __name__ == '__main__':
-    main()

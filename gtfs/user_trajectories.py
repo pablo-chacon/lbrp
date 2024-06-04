@@ -74,7 +74,7 @@ def regenerate_48_hour_movements(all_user_data):
     return regenerated_data
 
 
-def main():
+def user_trajectory():
     gdf, destinations = process_user_trajectories()
     gdf.to_pickle('all_user_data.pkl')
     destinations.to_pickle('dest.pkl')
@@ -86,5 +86,5 @@ def main():
     regenerated_data.to_pickle('regenerated_48_hour_data.pkl')
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    user_trajectory()
