@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: lbrp
+Version: 1.0.2
+Summary: Location Based Route Planner
+Home-page: https://github.com/pablo-chacon/lbrp/tree/main
+Author: pablo-chacon
+Author-email: ekarlsson66@gmail.com
+License: MIT
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Requires-Python: >=3.8
+Requires-Dist: pandas
+Requires-Dist: geopandas
+Requires-Dist: folium
+Requires-Dist: streamlit
+Requires-Dist: streamlit-folium
+Requires-Dist: geopy
+Requires-Dist: shapely
+Requires-Dist: scikit-learn
+Requires-Dist: matplotlib
+Requires-Dist: python-dotenv
+Requires-Dist: requests
+Requires-Dist: gpxpy

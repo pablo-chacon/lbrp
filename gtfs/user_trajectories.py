@@ -10,7 +10,6 @@ from datetime import timedelta
 # __Version__: 1.0.3
 # __Date__: 2024-06-01
 
-
 def parse_gpx(gpx_file_path):
     tree = ET.parse(gpx_file_path)
     root = tree.getroot()
@@ -31,7 +30,7 @@ def identify_destinations(gdf):
 
 
 def process_user_trajectories():
-    gpx_folder = 'user_profiles'
+    gpx_folder = os.path.join(os.path.dirname(__file__), 'user_profiles')
     user_profiles = []
     for filename in os.listdir(gpx_folder):
         if filename.endswith('.gpx'):

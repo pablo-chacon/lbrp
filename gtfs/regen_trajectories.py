@@ -92,7 +92,7 @@ for i in range(num_users):
 
 # Write GPX user files
 for i, user_gpx in enumerate(user_profiles):
-    with open(f"user_profiles/user_{i + 1}_profile.gpx", "w") as gpx_file:
+    with open(f"user_{i + 1}_profile.gpx", "w") as gpx_file:
         gpx_file.write(user_gpx.to_xml())
 
 print("User profiles generated successfully.")

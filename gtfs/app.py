@@ -1,16 +1,15 @@
-# app.py
-
 import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import logging
+from datetime import datetime
+
 import user_patterns as up
 import sl_rtd as sl
 import trajectory_map as tm
 import user_trajectories as ut
 import lbrp as lbrp
-from datetime import datetime
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
@@ -22,11 +21,11 @@ logging.basicConfig(level=logging.INFO)
 
 # Run scripts, generate data.
 def run_scripts():
-    ut.user_trajectory()
-    lbrp.lbrp()
-    up.user_patterns()
-    sl.rtd()
-    tm.create_trajectory_map()
+    ut.user_trajectory()  # Generate user trajectories first
+    lbrp.lbrp()  # Then generate the optimized route
+    up.user_patterns()  # Generate user patterns
+    sl.rtd()  # Load real-time data
+    tm.create_trajectory_map()  # Create trajectory map
 
 
 # Load data functions
@@ -82,7 +81,8 @@ def create_folium_map(data, title, color='blue'):
             ).add_to(m)
     else:
         st.error(
-            f"Data for {title} does not contain 'Latitude'/'Longitude', 'lat'/'lon', or 'waypoint_lat'/'waypoint_lon' columns.")
+            f"Data for {title} does not contain 'Latitude'/'Longitude', 'lat'/'lon', or 'waypoint_lat'/'waypoint_lon' columns."
+        )
         return None
     folium.LayerControl().add_to(m)
     return m
