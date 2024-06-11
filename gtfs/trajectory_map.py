@@ -106,5 +106,4 @@ def create_trajectory_map():
     m.save('simulated_trajectory_map.html')
 
 
-if __name__ == '__main__':
-    create_trajectory_map()
+

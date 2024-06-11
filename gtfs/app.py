@@ -1,3 +1,5 @@
+# app.py
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -8,6 +10,7 @@ import sl_rtd as sl
 import trajectory_map as tm
 import user_trajectories as ut
 import lbrp as lbrp
+from datetime import datetime
 
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
@@ -16,6 +19,7 @@ import lbrp as lbrp
 # Set up logging.
 logging.basicConfig(level=logging.INFO)
 
+
 # Run scripts, generate data.
 def run_scripts():
     ut.user_trajectory()
@@ -23,6 +27,7 @@ def run_scripts():
     up.user_patterns()
     sl.rtd()
     tm.create_trajectory_map()
+
 
 # Load data functions
 @st.cache_data
@@ -35,6 +40,17 @@ def load_data(file_path):
     except Exception as e:
         st.error(f"Error loading {file_path}: {e}")
         return None
+
+
+# Calculate total transit time
+def calculate_total_transit_time(data, time_column='waypoint_time'):
+    if time_column in data.columns:
+        start_time = pd.to_datetime(data[time_column].min())
+        end_time = pd.to_datetime(data[time_column].max())
+        total_time = end_time - start_time
+        return total_time
+    return None
+
 
 # Create folium map from DataFrame.
 def create_folium_map(data, title, color='blue'):
@@ -65,16 +81,19 @@ def create_folium_map(data, title, color='blue'):
                 icon=folium.Icon(color=color)
             ).add_to(m)
     else:
-        st.error(f"Data for {title} does not contain 'Latitude'/'Longitude', 'lat'/'lon', or 'waypoint_lat'/'waypoint_lon' columns.")
+        st.error(
+            f"Data for {title} does not contain 'Latitude'/'Longitude', 'lat'/'lon', or 'waypoint_lat'/'waypoint_lon' columns.")
         return None
     folium.LayerControl().add_to(m)
     return m
+
 
 # Display folium map from HTML.
 def display_map(html_file_path):
     with open(html_file_path, 'r') as file:
         map_html = file.read()
     return st.components.v1.html(map_html, height=600)
+
 
 # Generate data
 run_scripts()
@@ -103,12 +122,19 @@ with tab3:
     if optimized_data is not None:
         original_data = load_data("gdf.pkl")
         st.header("Optimization Comparison")
+
+        # Before Optimization
         st.subheader("Before Optimization")
+        total_time_before = calculate_total_transit_time(all_user_data, 'Time')
+        st.write(f"Total time in transit (Before Optimization): {total_time_before}")
         folium_map_before = create_folium_map(all_user_data, "Before Optimization", color='blue')
         if folium_map_before:
             st_folium(folium_map_before, width=700, key="before_optimization")
 
+        # After Optimization
         st.subheader("After Optimization")
+        total_time_after = calculate_total_transit_time(optimized_data, 'waypoint_time')
+        st.write(f"Total time in transit (After Optimization): {total_time_after}")
         folium_map_after = create_folium_map(optimized_data, "After Optimization", color='red')
         if folium_map_after:
             st_folium(folium_map_after, width=700, key="after_optimization")

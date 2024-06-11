@@ -9,19 +9,24 @@ import logging
 import pickle
 from datetime import datetime, timedelta
 
-# Configure logging.
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
 # __Date__: 2024-05-23
 
+"""This script is a Location Based Route Planner (LBRP).
+    Generates an optimized route based on user trajectory data."""
+
+# Configure logging.
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Load .env vars.
 load_dotenv()
+
 
 # Load sites data.
 def load_sites_data():
     return sl.load_sites_data()
+
 
 # Find the three closest sites within 1 km.
 def find_nearby_sites(lat, lon, sites_data, radius=1000, n=3):
@@ -34,6 +39,7 @@ def find_nearby_sites(lat, lon, sites_data, radius=1000, n=3):
     closest_sites = nearby_sites.nsmallest(n, 'distance')
     return closest_sites
 
+
 # Fetch real-time departure information.
 def fetch_departures(site_id, time_window=10):
     try:
@@ -44,6 +50,7 @@ def fetch_departures(site_id, time_window=10):
     except Exception as e:
         logging.error(f"Error fetching departures for site ID {site_id}: {e}")
     return []
+
 
 # Estimate travel time walking/biking/driving.
 def estimate_travel_time(distance, transport_mode):
@@ -58,6 +65,7 @@ def estimate_travel_time(distance, transport_mode):
     travel_time_hours = distance / 1000 / speed_kmh
     travel_time_minutes = travel_time_hours * 60
     return timedelta(minutes=travel_time_minutes)
+
 
 # Optimize route.
 def optimize_route(gdf, sites_data, destination_coords, step=15):
@@ -121,6 +129,7 @@ def optimize_route(gdf, sites_data, destination_coords, step=15):
     logging.info(f"Route generated with {len(route)} entries.")
     return route
 
+
 def lbrp():
     logging.info("Loading user trajectory data")
     gdf = pd.read_pickle('gdf.pkl')
@@ -152,5 +161,5 @@ def lbrp():
         print(entry['destination'], entry['direction'], entry['state'], entry['scheduled'], entry['expected'])
         print("\n")
 
-if __name__ == '__main__':
-    lbrp()
+
+

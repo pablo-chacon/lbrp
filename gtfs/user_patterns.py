@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from shapely.geometry import Point
 from datetime import datetime, timedelta
 
+
 # __Author__: pablo-chacon
 # __Version__: 1.0.3
 # __Date__: 2024-06-01
@@ -17,6 +18,7 @@ def preprocess_geodata(df):
     df['geometry'] = df.apply(lambda row: Point(row['Longitude'], row['Latitude']), axis=1)
     return df
 
+
 def analyze_movement(df):
     df['next_point'] = df['geometry'].shift(-1)
     df['distance'] = df.apply(
@@ -24,6 +26,7 @@ def analyze_movement(df):
     df['time_diff'] = df['Time'].diff().dt.total_seconds().shift(-1)
     df['speed'] = df.apply(lambda row: row['distance'] / row['time_diff'] if row['time_diff'] > 0 else 0, axis=1)
     return df
+
 
 def cluster_user_trajectories(df, n_clusters=5):
     coords = df[['Longitude', 'Latitude']].values
@@ -33,11 +36,13 @@ def cluster_user_trajectories(df, n_clusters=5):
     df['cluster'] = kmeans.fit_predict(coords_scaled)
     return df, kmeans
 
+
 def generate_representative_routes(df):
     numeric_cols = ['Longitude', 'Latitude']
     clusters = df.groupby('cluster')
     representative_routes = clusters[numeric_cols].mean()
     return representative_routes
+
 
 def match_routes_to_optimized(representative_routes, optimized_route):
     matched_routes = []
@@ -49,6 +54,7 @@ def match_routes_to_optimized(representative_routes, optimized_route):
         matched_routes.append(matched)
     return pd.concat(matched_routes)
 
+
 def generate_generalized_timetable(matched_routes):
     matched_routes['scheduled'] = pd.to_datetime(matched_routes['scheduled'])
     matched_routes['expected'] = pd.to_datetime(matched_routes['expected'])
@@ -58,6 +64,7 @@ def generate_generalized_timetable(matched_routes):
         'transport_mode': 'first'
     }).reset_index()
     return generalized_timetable
+
 
 def user_patterns():
     user_profiles_folder = 'user_profiles'
@@ -94,6 +101,3 @@ def user_patterns():
     print("Generalized Optimized Timetable:", generalized_optimized_timetable)
 
     generalized_optimized_timetable.to_pickle('generalized_optimized_timetable.pkl')
-
-if __name__ == '__main__':
-    user_patterns()
