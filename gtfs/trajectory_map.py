@@ -1,5 +1,3 @@
-# trajectory_map.py
-
 import folium
 import pandas as pd
 
