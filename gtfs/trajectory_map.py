@@ -1,3 +1,5 @@
+# trajectory_map.py
+
 import folium
 import pandas as pd
 
@@ -5,7 +7,6 @@ import pandas as pd
 # __Author__: pablo-chacon
 # __Version__: 1.0.2
 # __Date__: 2024-06-02
-
 
 def plot_48_hour_data(m, data):
     for user_id, user_data in data.groupby('user_id'):
@@ -81,7 +82,8 @@ def create_trajectory_map():
         print(f"Error loading optimized_route.pkl: {e}")
         return
 
-    optimized_route_df = pd.DataFrame(optimized_route_df)
+    if isinstance(optimized_route_df, list):
+        optimized_route_df = pd.DataFrame(optimized_route_df)
     generalized_optimized_timetable = pd.read_pickle('generalized_optimized_timetable.pkl')
 
     # Ensure waypoint columns exist in generalized_optimized_timetable.

@@ -1,3 +1,5 @@
+# app.py
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -16,7 +18,6 @@ import lbrp as lbrp
 # Set up logging.
 logging.basicConfig(level=logging.INFO)
 
-
 # Run scripts, generate data.
 def run_scripts():
     ut.user_trajectory()
@@ -25,49 +26,57 @@ def run_scripts():
     sl.rtd()
     tm.create_trajectory_map()
 
-
 # Load data functions
 @st.cache_data
 def load_data(file_path):
     try:
         data = pd.read_pickle(file_path)
-        return pd.DataFrame(data)
+        if isinstance(data, list):  # Check if data is a list
+            data = pd.DataFrame(data)
+        return data
     except Exception as e:
         st.error(f"Error loading {file_path}: {e}")
         return None
 
-
 # Create folium map from DataFrame.
-def create_folium_map(data, title):
+def create_folium_map(data, title, color='blue'):
     if 'Latitude' in data.columns and 'Longitude' in data.columns:
-        m = folium.Map(location=[data['Latitude'].mean(), data['Longitude'].mean()], zoom_start=13)
+        m = folium.Map(location=[data['Latitude'].mean(), data['Longitude'].mean()], zoom_start=15)
         for _, row in data.iterrows():
             folium.Marker(
                 location=[row['Latitude'], row['Longitude']],
                 popup=f"{row['user_id']}<br>Time: {row['Time']}",
+                icon=folium.Icon(color=color)
             ).add_to(m)
     elif 'lat' in data.columns and 'lon' in data.columns:
         # Filter out rows with NaN values in 'lat' or 'lon'
         data = data.dropna(subset=['lat', 'lon'])
-        m = folium.Map(location=[data['lat'].mean(), data['lon'].mean()], zoom_start=13)
+        m = folium.Map(location=[data['lat'].mean(), data['lon'].mean()], zoom_start=15)
         for _, row in data.iterrows():
             folium.Marker(
                 location=[row['lat'], row['lon']],
                 popup=f"{row['name']}<br>Note: {row['note']}",
+                icon=folium.Icon(color=color)
+            ).add_to(m)
+    elif 'waypoint_lat' in data.columns and 'waypoint_lon' in data.columns:
+        m = folium.Map(location=[data['waypoint_lat'].mean(), data['waypoint_lon'].mean()], zoom_start=15)
+        for _, row in data.iterrows():
+            folium.Marker(
+                location=[row['waypoint_lat'], row['waypoint_lon']],
+                popup=f"{row['site_name']}<br>Time: {row['waypoint_time']}",
+                icon=folium.Icon(color=color)
             ).add_to(m)
     else:
-        st.error(f"Data for {title} does not contain 'Latitude'/'Longitude' or 'lat'/'lon' columns.")
+        st.error(f"Data for {title} does not contain 'Latitude'/'Longitude', 'lat'/'lon', or 'waypoint_lat'/'waypoint_lon' columns.")
         return None
     folium.LayerControl().add_to(m)
     return m
-
 
 # Display folium map from HTML.
 def display_map(html_file_path):
     with open(html_file_path, 'r') as file:
         map_html = file.read()
     return st.components.v1.html(map_html, height=600)
-
 
 # Generate data
 run_scripts()
@@ -97,13 +106,12 @@ with tab3:
         original_data = load_data("gdf.pkl")
         st.header("Optimization Comparison")
         st.subheader("Before Optimization")
-        folium_map_before = create_folium_map(all_user_data, "Before Optimization")
+        folium_map_before = create_folium_map(all_user_data, "Before Optimization", color='blue')
         if folium_map_before:
             st_folium(folium_map_before, width=700, key="before_optimization")
 
-        optimized_data = load_data('optimized_route.pkl')
         st.subheader("After Optimization")
-        folium_map_after = create_folium_map(optimized_data, "After Optimization")
+        folium_map_after = create_folium_map(optimized_data, "After Optimization", color='red')
         if folium_map_after:
             st_folium(folium_map_after, width=700, key="after_optimization")
 
