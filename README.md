@@ -47,61 +47,51 @@ Analyzes user patterns.
 ## Installation
 
 ### Clone the Repository
-bash
+```
 git clone <repository-url>
 cd <repository-directory>
-
+```
 Set Up Virtual Environment:
+```
 python -m venv env
-source env/bin/activate  # On Windows use `env\Scripts\activate`
+source env/bin/activate
+```
+On Windows use `env\Scripts\activate`
 
-nstall Dependencies
-
+#### Install dependencies
 You can either install dependencies manually or use the setup.py file.
 Using setup.py
 
 In the root directory of your project, run:
-
-bash
-
+```
 pip install .
+```
 
-Manually
-
+#### Install dependencies manually
 If you prefer to install dependencies manually, run:
-
-bash
-
+```
 pip install pandas geopandas folium streamlit streamlit-folium geopy shapely scikit-learn matplotlib python-dotenv requests gpxpy
-
+```
 Usage
 Run the Scripts to Generate Data
 Run user_trajectories.py:
-
-bash
-
+```
 python -m gtfs.user_trajectories
-
+```
 Run lbrp.py:
-
-bash
-
+```
 python -m gtfs.lbrp
-
+```
 Run user_patterns.py:
-
-bash
-
+```
 python -m gtfs.user_patterns
-
+```
 Run the Streamlit Application
 
 After generating the required data, you can run the Streamlit application to visualize the results. The data generation takes time because it runs a simulation of a 48-hour period. Simulation time is set to 20 minutes to provide real-time data in a realistic way.
-
-bash
-
+```
 streamlit run app.py
-
+```
 This will start a local server. Open the provided URL in your web browser to view the application.
 Streamlit Tabs
 User Trajectories
