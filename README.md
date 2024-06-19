@@ -48,8 +48,8 @@ Analyzes user patterns.
 
 ### Clone the Repository
 bash
-git clone <repository-url>
-cd <repository-directory>
+git clone https://github.com/pablo-chacon/lbrp.git
+cd lbrp/gtfs
 
 Set Up Virtual Environment:
 python -m venv env
